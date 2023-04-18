@@ -87,37 +87,34 @@ private:
 
     long find_Node(const K& key, const V& value)
     {
-        Node tmp;
         long res = head;
-        file.read(head, tmp);
+        const Node* tmp = file.readonly(head);
         KVpair tofind(key, value);
-        while (tmp.ptr[0])
+        while (tmp->ptr[0])
         {
-            KVpair* found = upper_bound(tmp.data, tmp.data+tmp.size, tofind, comp);
-            res = tmp.ptr[found - tmp.data];
-            file.read(res, tmp);
+            const KVpair* found = upper_bound(tmp->data, tmp->data+tmp->size, tofind, comp);
+            res = tmp->ptr[found - tmp->data];
+            tmp = file.readonly(res);
         }
         return res;
     }
 
     long find_Node(const K& key)
     {
-        Node tmp;
         long res = head;
-        file.read(head, tmp);
-        while (tmp.ptr[0])
+        const Node* tmp = file.readonly(head);
+        while (tmp->ptr[0])
         {
-            KVpair* found = lower_bound(tmp.data, tmp.data+tmp.size, key, comp);
-            res = tmp.ptr[found - tmp.data];
-            file.read(res, tmp);
+            const KVpair* found = lower_bound(tmp->data, tmp->data+tmp->size, key, comp);
+            res = tmp->ptr[found - tmp->data];
+            tmp = file.readonly(res);
         }
         return res;
     }
 
     void insert_leaf(long address, const K& key, const V& value)
     {
-        Node tmp;
-        file.read(address, tmp);
+        Node& tmp = *file.readwrite(address);
         KVpair toinsert(key, value);
         KVpair* found = lower_bound(tmp.data, tmp.data+tmp.size, toinsert, comp);
         if (found != tmp.data+tmp.size && *found == toinsert) return; // remember to check out_of_bound!
@@ -127,10 +124,7 @@ private:
         tmp.data[locat] = toinsert;
         tmp.size++;
         if (tmp.size < DEGREE)
-        {
-            file.write(address, tmp);
             return;
-        }
         int carry = DEGREE / 2;
         long new_address = file.new_space();
         Node new_leaf;
@@ -142,34 +136,30 @@ private:
         tmp.ptr[1] = new_address;
         for (int i = 0; i < new_leaf.size; i++)
             new_leaf.data[i] = tmp.data[carry+i];
-        file.write(address, tmp);
         file.write(new_address, new_leaf);
         insert_internal(tmp.parent, new_address, tmp.data[carry]);
     }
 
     void insert_internal(long this_address, long right_address, const KVpair& toinsert)
     {
-        Node this_node;
         if (!this_address)
         {
+            Node new_node;
             long new_head = file.new_space();
-            this_node.size = 1;
-            this_node.parent = 0;
-            this_node.data[0] = toinsert;
-            this_node.ptr[0] = head;
-            this_node.ptr[1] = right_address;
-            Node tmp;
-            file.read(head, tmp);
-            tmp.parent = new_head;
-            file.write(head, tmp);
-            file.read(right_address, tmp);
-            tmp.parent = new_head;
-            file.write(right_address, tmp);
+            new_node.size = 1;
+            new_node.parent = 0;
+            new_node.data[0] = toinsert;
+            new_node.ptr[0] = head;
+            new_node.ptr[1] = right_address;
+            Node* tmp = file.readwrite(head);
+            tmp->parent = new_head;
+            tmp = file.readwrite(right_address);
+            tmp->parent = new_head;
             head = new_head;
-            file.write(new_head, this_node);
+            file.write(new_head, new_node);
             return;
         }
-        file.read(this_address, this_node);
+        Node& this_node = *file.readwrite(this_address);
         KVpair* found = lower_bound(this_node.data, this_node.data+this_node.size, toinsert, comp);
         int locat = found - this_node.data;
         if (this_node.size < DEGREE)
@@ -182,7 +172,6 @@ private:
             this_node.data[locat] = toinsert;
             this_node.ptr[locat+1] = right_address;
             this_node.size++;
-            file.write(this_address, this_node);
             return;
         }
         // split
@@ -225,21 +214,18 @@ private:
         }
         for (int i = 0; i <= new_node.size; i++)
         {
-            Node tmp;
-            file.read(new_node.ptr[i], tmp);
-            tmp.parent = new_address;
-            file.write(new_node.ptr[i], tmp);
+            Node* tmp = file.readwrite(new_node.ptr[i]);
+            tmp->parent = new_address;
         }
-        file.write(this_address, this_node);
         file.write(new_address, new_node);
         insert_internal(this_node.parent, new_address, tocarry);
     }
 
     void erase_leaf(long address, const K& key, const V& value)
     {
-        Node tmp;
+        
         KVpair toerase(key, value);
-        file.read(address, tmp);
+        Node &tmp = *file.readwrite(address);
         KVpair* found = lower_bound(tmp.data, tmp.data+tmp.size, toerase, comp);
         if (!(*found == toerase)) return;
         int locat = found - tmp.data;
@@ -247,11 +233,7 @@ private:
         for (int i = locat; i < tmp.size-1; i++)
             tmp.data[i] = tmp.data[i+1];
         tmp.size--;
-        if (tmp.size >= DEGREE/2)
-        {
-            file.write(address, tmp);
-            return;
-        }
+        if (tmp.size >= DEGREE/2) return;
         erase_leaf_rebalance(address, tmp);
     }
 
@@ -259,17 +241,12 @@ private:
     {
         if (!this_node.parent)
         {
-            if (this_node.size)
-            {
-                file.write(address, this_node);
-                return;
-            }
+            if (this_node.size) return;
             file.delete_space(address);
             head = 0;
             return;
         }
-        Node parent_node;
-        file.read(this_node.parent, parent_node);
+        Node &parent_node = *file.readwrite(this_node.parent);
         KVpair* this_key = upper_bound(parent_node.data, parent_node.data+parent_node.size, this_node.data[0], comp) - 1;
         int locat = this_key - parent_node.data;
         // borrow from right sibling
@@ -279,52 +256,46 @@ private:
             right = 0;
         else
             right = parent_node.ptr[locat+2];
-        Node right_node;
+        Node* right_node;
         if (right)
         {
-            file.read(right, right_node);
-            if (right_node.size > DEGREE / 2)
+            right_node = file.readwrite(right);
+            if (right_node->size > DEGREE / 2)
             {
-                this_node.data[this_node.size] = right_node.data[0];
+                this_node.data[this_node.size] = right_node->data[0];
                 this_node.size++;
-                for (int i = 1; i < right_node.size; i++)
-                    right_node.data[i-1] = right_node.data[i];
-                right_node.size--;
-                *(this_key+1) = right_node.data[0];
-                file.write(address, this_node);
-                file.write(right, right_node);
-                file.write(this_node.parent, parent_node);
+                for (int i = 1; i < right_node->size; i++)
+                    right_node->data[i-1] = right_node->data[i];
+                right_node->size--;
+                *(this_key+1) = right_node->data[0];
                 return;
             }
         }
         // borrow from left sibling
-        Node left_node;
+        Node* left_node;
         long left;
         if (locat >= 0)
         {
             left = parent_node.ptr[locat];
-            file.read(left, left_node);
-            if (left_node.size > DEGREE / 2)
+            left_node = file.readwrite(left);
+            if (left_node->size > DEGREE / 2)
             {
                 for (int i = this_node.size; i > 0; i--)
                     this_node.data[i] = this_node.data[i-1];
-                left_node.size--;
-                this_node.data[0] = left_node.data[left_node.size];
+                left_node->size--;
+                this_node.data[0] = left_node->data[left_node->size];
                 this_node.size++;
                 *this_key = this_node.data[0];
-                file.write(address, this_node);
-                file.write(left, left_node);
-                file.write(this_node.parent, parent_node);
                 return;
             }
         }
         // merge with siblings
         if (right)
         {
-            for (int i = 0; i < right_node.size; i++)
-                this_node.data[this_node.size+i] = right_node.data[i];
-            this_node.size += right_node.size;
-            this_node.ptr[1] = right_node.ptr[1];
+            for (int i = 0; i < right_node->size; i++)
+                this_node.data[this_node.size+i] = right_node->data[i];
+            this_node.size += right_node->size;
+            this_node.ptr[1] = right_node->ptr[1];
             for (int i = locat+1; i < parent_node.size-1; i++)
             {
                 parent_node.data[i] = parent_node.data[i+1];
@@ -332,14 +303,13 @@ private:
             }
             parent_node.size--;
             file.delete_space(right);
-            file.write(address, this_node);
         }
         else
         {
             for (int i = 0; i < this_node.size; i++)
-                left_node.data[left_node.size+i] = this_node.data[i];
-            left_node.size += this_node.size;
-            left_node.ptr[1] = this_node.ptr[1];
+                left_node->data[left_node->size+i] = this_node.data[i];
+            left_node->size += this_node.size;
+            left_node->ptr[1] = this_node.ptr[1];
             for (int i = locat; i < parent_node.size-1; i++)
             {
                 parent_node.data[i] = parent_node.data[i+1];
@@ -347,35 +317,25 @@ private:
             }
             parent_node.size--;
             file.delete_space(address);
-            file.write(left, left_node);
         }
-        if (parent_node.size >= DEGREE / 2)
-        {
-            file.write(this_node.parent, parent_node);
-            return;
-        }
+        if (parent_node.size >= DEGREE / 2) return;
         erase_internal_rebalance(this_node.parent, parent_node);
     }
 
     void erase_internal_rebalance(long address, Node& this_node)
     {
-        Node son;
+        Node* son;
         if (!this_node.parent)
         {
             if (this_node.size)
-            {
-                file.write(address, this_node);
                 return; 
-            }
-            file.read(this_node.ptr[0], son);
-            son.parent = 0;
+            son = file.readwrite(this_node.ptr[0]);
+            son->parent = 0;
             head = this_node.ptr[0];
             file.delete_space(address);
-            file.write(this_node.ptr[0], son);
             return;
         }
-        Node parent_node;
-        file.read(this_node.parent, parent_node);
+        Node &parent_node = *file.readwrite(this_node.parent);
         KVpair* this_key = upper_bound(parent_node.data, parent_node.data+parent_node.size, this_node.data[0], comp) - 1;
         int locat = this_key - parent_node.data;
         long right;
@@ -384,40 +344,36 @@ private:
         else
             right = parent_node.ptr[locat+2];
         // borrow from right sibling
-        Node right_node;
+        Node* right_node;
         if (right)
         {
-            file.read(right, right_node);
-            if (right_node.size > DEGREE / 2)
+            right_node = file.readwrite(right);
+            if (right_node->size > DEGREE / 2)
             {
                 this_node.size++;
-                file.read(right_node.ptr[0], son);
-                this_node.ptr[this_node.size] = right_node.ptr[0];
-                son.parent = address;
-                file.write(right_node.ptr[0], son);
-                 this_node.data[this_node.size-1] = *(this_key+1); // NOT this_node.data[this_node.size-1] = son.data[0]!!!
-                *(this_key+1) = right_node.data[0]; // THIS LINE SHOULD BE DONE BEFORE MOVING!
-                for (int i = 1; i < right_node.size; i++)
+                son = file.readwrite(right_node->ptr[0]);
+                this_node.ptr[this_node.size] = right_node->ptr[0];
+                son->parent = address;
+                 this_node.data[this_node.size-1] = *(this_key+1); // NOT this_node.data[this_node.size-1] = son->data[0]!!!
+                *(this_key+1) = right_node->data[0]; // THIS LINE SHOULD BE DONE BEFORE MOVING!
+                for (int i = 1; i < right_node->size; i++)
                 {
-                    right_node.data[i-1] = right_node.data[i];
-                    right_node.ptr[i-1] = right_node.ptr[i];
+                    right_node->data[i-1] = right_node->data[i];
+                    right_node->ptr[i-1] = right_node->ptr[i];
                 }
-                right_node.ptr[right_node.size-1] = right_node.ptr[right_node.size];
-                right_node.size--;
-                file.write(address, this_node);
-                file.write(right, right_node);
-                file.write(this_node.parent, parent_node);
+                right_node->ptr[right_node->size-1] = right_node->ptr[right_node->size];
+                right_node->size--;
                 return;
             }
         }
         // borrow from left sibling
-        Node left_node;
+        Node* left_node;
         long left;
         if (locat >= 0)
         {
             left = parent_node.ptr[locat];
-            file.read(left, left_node);
-            if (left_node.size > DEGREE / 2)
+            left_node = file.readwrite(left);
+            if (left_node->size > DEGREE / 2)
             {
                 this_node.ptr[this_node.size+1] = this_node.ptr[this_node.size];
                 for (int i = this_node.size; i > 0; i--)
@@ -425,37 +381,31 @@ private:
                     this_node.data[i] = this_node.data[i-1];
                     this_node.ptr[i] = this_node.ptr[i-1];
                 }
-                file.read(left_node.ptr[left_node.size], son);
-                this_node.ptr[0] = left_node.ptr[left_node.size];
-                son.parent = address;
-                file.write(this_node.ptr[0], son);
+                son = file.readwrite(left_node->ptr[left_node->size]);
+                this_node.ptr[0] = left_node->ptr[left_node->size];
+                son->parent = address;
                 this_node.size++;
-                left_node.size--;
-                this_node.data[0] = *this_key; // NOT this_node.data[0] = son.data[0]!
-                *this_key = left_node.data[left_node.size]; // SIGNIFICANT STEP!
-                file.write(address, this_node);
-                file.write(left, left_node);
-                file.write(this_node.parent, parent_node);
+                left_node->size--;
+                this_node.data[0] = *this_key; // NOT this_node.data[0] = son->data[0]!
+                *this_key = left_node->data[left_node->size]; // SIGNIFICANT STEP!
                 return;
             }
         }
         // merge with siblings
         if (right)
         {
-            this_node.ptr[this_node.size+1] = right_node.ptr[0];
-            file.read(right_node.ptr[0], son);
-            son.parent = address;
-            file.write(right_node.ptr[0], son);
-            for (int i = 0; i < right_node.size; i++)
+            this_node.ptr[this_node.size+1] = right_node->ptr[0];
+            son = file.readwrite(right_node->ptr[0]);
+            son->parent = address;
+            for (int i = 0; i < right_node->size; i++)
             {
-                this_node.data[this_node.size+1+i] = right_node.data[i];
-                this_node.ptr[this_node.size+i+2] = right_node.ptr[i+1]; 
-                file.read(right_node.ptr[i+1], son);
-                son.parent = address;
-                file.write(right_node.ptr[i+1], son);
+                this_node.data[this_node.size+1+i] = right_node->data[i];
+                this_node.ptr[this_node.size+i+2] = right_node->ptr[i+1]; 
+                son = file.readwrite(right_node->ptr[i+1]);
+                son->parent = address;
             }
             this_node.data[this_node.size] = parent_node.data[locat+1];
-            this_node.size += right_node.size + 1;
+            this_node.size += right_node->size + 1;
             for (int i = locat + 1; i < parent_node.size - 1; i++)
             {
                 parent_node.data[i] = parent_node.data[i+1];
@@ -463,24 +413,21 @@ private:
             }
             parent_node.size--;
             file.delete_space(right);
-            file.write(address, this_node);
         }
         else
         {
-            left_node.ptr[left_node.size+1] = this_node.ptr[0];
-            file.read(this_node.ptr[0], son);
-            son.parent = left;
-            file.write(this_node.ptr[0], son);
+            left_node->ptr[left_node->size+1] = this_node.ptr[0];
+            son = file.readwrite(this_node.ptr[0]);
+            son->parent = left;
             for (int i = 0; i < this_node.size; i++)
             {
-                left_node.data[left_node.size+1+i] = this_node.data[i];
-                left_node.ptr[left_node.size+i+2] = this_node.ptr[i+1]; 
-                file.read(this_node.ptr[i+1], son);
-                son.parent = left;
-                file.write(this_node.ptr[i+1], son);
+                left_node->data[left_node->size+1+i] = this_node.data[i];
+                left_node->ptr[left_node->size+i+2] = this_node.ptr[i+1]; 
+                son = file.readwrite(this_node.ptr[i+1]);
+                son->parent = left;
             }
-            left_node.data[left_node.size] = parent_node.data[locat];
-            left_node.size += this_node.size + 1;
+            left_node->data[left_node->size] = parent_node.data[locat];
+            left_node->size += this_node.size + 1;
             for (int i = locat; i < parent_node.size - 1; i++)
             {
                 parent_node.data[i] = parent_node.data[i+1];
@@ -488,13 +435,8 @@ private:
             }
             parent_node.size--;
             file.delete_space(address);
-            file.write(left, left_node);
         }
-        if (parent_node.size >= DEGREE / 2)
-        {
-            file.write(this_node.parent, parent_node);
-            return;
-        }
+        if (parent_node.size >= DEGREE / 2) return;
         erase_internal_rebalance(this_node.parent, parent_node);
     }
 
@@ -511,29 +453,29 @@ public:
     void find(const K& key, vector<V>& res)
     {
         if (!head) return;
-        Node tmp;
+        const Node* tmp;
         long tofind = find_Node(key);
-        file.read(tofind, tmp);
-        KVpair* begin = lower_bound(tmp.data, tmp.data+tmp.size, key, comp);
-        int locat = begin - tmp.data;
-        for (int i = locat; i < tmp.size; i++)
+        tmp = file.readonly(tofind);
+        const KVpair* begin = lower_bound(tmp->data, tmp->data+tmp->size, key, comp);
+        int locat = begin - tmp->data;
+        for (int i = locat; i < tmp->size; i++)
         {
-            if (tmp.data[i].key == key)
-                res.push_back(tmp.data[i].value);
+            if (tmp->data[i].key == key)
+                res.push_back(tmp->data[i].value);
             else return;
         }
-        long next = tmp.ptr[1];
+        long next = tmp->ptr[1];
         while (next)
         {
-            file.read(next, tmp);
-            for (int i = 0; i < tmp.size; i++)
+            tmp = file.readonly(next);
+            for (int i = 0; i < tmp->size; i++)
             {
-                if (tmp.data[i].key == key)
-                    res.push_back(tmp.data[i].value);
-                else if (tmp.data[i].key < key) continue;
+                if (tmp->data[i].key == key)
+                    res.push_back(tmp->data[i].value);
+                else if (tmp->data[i].key < key) continue;
                 else return;
             }
-            next = tmp.ptr[1];
+            next = tmp->ptr[1];
         }
     }
 

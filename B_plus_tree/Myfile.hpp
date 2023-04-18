@@ -7,7 +7,7 @@
 #include <cstring>
 
 #define MAX_POOL_CACHE 1000
-#define MAX_CACHE 1000
+#define MAX_CACHE 1200
 #define HASH_SIZE 2027
 
 namespace sjtu
@@ -340,22 +340,24 @@ public:
         return file.head();
     }
 
-    void read(long address, T& value)
+    const T* readonly(long address)
     {
         long found = node_map.find(address);
         if (found != -1)
         {
             auto tmp = reinterpret_cast<typename Cache_List<T>::Cache_Node*> (found);
             list.adjust_to_front(tmp);
-            value = tmp->data;
-            return;
+            return &(tmp->data);
         }
+        T value;
         file.read(address, value);
-        node_map.insert(address, reinterpret_cast<long> (list.push_front(address, value, false)));
+        auto ptr = list.push_front(address, value, false);
+        node_map.insert(address, reinterpret_cast<long>(ptr));
         if (list.size() > MAX_CACHE) oversize();
+        return &(ptr->data);
     }
 
-    void write(long address, const T& value)
+    T* readwrite(long address)
     {
         long found = node_map.find(address);
         if (found != -1)
@@ -363,9 +365,18 @@ public:
             auto tmp = reinterpret_cast<typename Cache_List<T>::Cache_Node*> (found);
             list.adjust_to_front(tmp);
             tmp->dirty = true;
-            tmp->data = value;
-            return;
+            return &(tmp->data);
         }
+        T value;
+        file.read(address, value);
+        auto ptr = list.push_front(address, value, true);
+        node_map.insert(address, reinterpret_cast<long>(ptr));
+        if (list.size() > MAX_CACHE) oversize();
+        return &(ptr->data);
+    }
+
+    void write(long address, const T& value)
+    {
         node_map.insert(address, reinterpret_cast<long> (list.push_front(address, value, true)));
         if (list.size() > MAX_CACHE) oversize();
     }
