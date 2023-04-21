@@ -12,6 +12,67 @@ namespace sjtu
 template<typename K, typename V>
 class Multi_BPT
 {
+public:
+    Multi_BPT(const std::string& name): file(name, head)
+    {
+        head = file.head();
+    }
+    ~Multi_BPT()
+    {
+        file.head() = head;
+    }
+
+    void find(const K& key, vector<V>& res)
+    {
+        if (!head) return;
+        const Node* tmp;
+        long tofind = find_Node(key);
+        tmp = file.readonly(tofind);
+        const KVpair* begin = lower_bound(tmp->data, tmp->data+tmp->size, key, comp);
+        int locat = begin - tmp->data;
+        for (int i = locat; i < tmp->size; i++)
+        {
+            if (tmp->data[i].key == key)
+                res.push_back(tmp->data[i].value);
+            else return;
+        }
+        long next = tmp->ptr[1];
+        while (next)
+        {
+            tmp = file.readonly(next);
+            for (int i = 0; i < tmp->size; i++)
+            {
+                if (tmp->data[i].key == key)
+                    res.push_back(tmp->data[i].value);
+                else if (tmp->data[i].key < key) continue;
+                else return;
+            }
+            next = tmp->ptr[1];
+        }
+    }
+
+    void insert(const K& key, const V& value)
+    {
+        if (!head)
+        {
+            Node tmp;
+            head = file.new_space();
+            tmp.parent = 0;
+            tmp.size = 1;
+            tmp.data[0].key = key;
+            tmp.data[0].value = value;
+            tmp.ptr[0]  = tmp.ptr[1] = 0;
+            file.write(head, tmp);
+            return;
+        }
+        insert_leaf(find_Node(key, value), key, value);
+    }
+
+    void erase(const K& key, const V& value)
+    {
+        if (!head) return;
+        erase_leaf(find_Node(key, value), key, value);
+    }
 private:
     constexpr static int DEGREE = 4000 / (sizeof(long) + sizeof(K) + sizeof(V));
     struct KVpair
@@ -438,68 +499,6 @@ private:
         }
         if (parent_node.size >= DEGREE / 2) return;
         erase_internal_rebalance(this_node.parent, parent_node);
-    }
-
-public:
-    Multi_BPT(const std::string& name): file(name, head)
-    {
-        head = file.head();
-    }
-    ~Multi_BPT()
-    {
-        file.head() = head;
-    }
-
-    void find(const K& key, vector<V>& res)
-    {
-        if (!head) return;
-        const Node* tmp;
-        long tofind = find_Node(key);
-        tmp = file.readonly(tofind);
-        const KVpair* begin = lower_bound(tmp->data, tmp->data+tmp->size, key, comp);
-        int locat = begin - tmp->data;
-        for (int i = locat; i < tmp->size; i++)
-        {
-            if (tmp->data[i].key == key)
-                res.push_back(tmp->data[i].value);
-            else return;
-        }
-        long next = tmp->ptr[1];
-        while (next)
-        {
-            tmp = file.readonly(next);
-            for (int i = 0; i < tmp->size; i++)
-            {
-                if (tmp->data[i].key == key)
-                    res.push_back(tmp->data[i].value);
-                else if (tmp->data[i].key < key) continue;
-                else return;
-            }
-            next = tmp->ptr[1];
-        }
-    }
-
-    void insert(const K& key, const V& value)
-    {
-        if (!head)
-        {
-            Node tmp;
-            head = file.new_space();
-            tmp.parent = 0;
-            tmp.size = 1;
-            tmp.data[0].key = key;
-            tmp.data[0].value = value;
-            tmp.ptr[0]  = tmp.ptr[1] = 0;
-            file.write(head, tmp);
-            return;
-        }
-        insert_leaf(find_Node(key, value), key, value);
-    }
-
-    void erase(const K& key, const V& value)
-    {
-        if (!head) return;
-        erase_leaf(find_Node(key, value), key, value);
     }
 };
 

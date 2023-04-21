@@ -16,18 +16,6 @@ namespace sjtu
 template<typename T, typename Header>
 class Basefile
 {
-private:
-    std::fstream data;
-    std::fstream pool;
-    long data_cursor = sizeof(long) + sizeof(Header);
-    Header header;
-    long pool_cursor = sizeof(long);
-    struct Pool_Cache
-    {
-        long data[MAX_POOL_CACHE];
-        int size = 0;
-    } pool_cache;
-
 public:
     Basefile(const std::string& name, const Header& _header)
     {
@@ -134,6 +122,18 @@ public:
         return header;
     }
 
+private:
+    std::fstream data;
+    std::fstream pool;
+    long data_cursor = sizeof(long) + sizeof(Header);
+    Header header;
+    long pool_cursor = sizeof(long);
+    struct Pool_Cache
+    {
+        long data[MAX_POOL_CACHE];
+        int size = 0;
+    } pool_cache;
+
 };
 
 template<typename T>
@@ -151,12 +151,6 @@ public:
         address(a), data(v), dirty(w), pre(p), next(n) {}
     };
 
-private:
-    int Size = 0;
-    Cache_Node* head;
-    Cache_Node* end;
-
-public:
     Cache_List()
     {
         head = (Cache_Node*) malloc(sizeof(Cache_Node));
@@ -236,21 +230,15 @@ public:
     {
         return end->pre;
     }
+
+private:
+    int Size = 0;
+    Cache_Node* head;
+    Cache_Node* end;
 };
 
 class Hashmap
 {
-private:
-    struct Node
-    {
-        long key;
-        long data;
-        Node* next;
-        Node(): next(nullptr) {}
-        Node(long k, long d): key(k), data(d), next(nullptr) {}
-    };
-    Node array[HASH_SIZE];
-
 public:
     ~Hashmap()
     {
@@ -303,25 +291,21 @@ public:
             toerase = toerase->next;
         }
     }
+private:
+    struct Node
+    {
+        long key;
+        long data;
+        Node* next;
+        Node(): next(nullptr) {}
+        Node(long k, long d): key(k), data(d), next(nullptr) {}
+    };
+    Node array[HASH_SIZE];
 };
 
 template<typename T, typename Header>
 class Myfile
 {
-private:
-    Basefile<T, Header> file;
-    Cache_List<T> list;
-    Hashmap node_map;
-
-    void oversize()
-    {
-        auto tmp = list.back();
-        if (tmp->dirty)
-            file.write(tmp->address, tmp->data);
-        node_map.erase(tmp->address);
-        list.pop_back();
-    }
-
 public:
     Myfile(const std::string& name, const Header& _header): file(name, _header) {}
     ~Myfile()
@@ -396,6 +380,19 @@ public:
              list.erase(tmp);
              node_map.erase(address);
         }
+    }
+private:
+    Basefile<T, Header> file;
+    Cache_List<T> list;
+    Hashmap node_map;
+
+    void oversize()
+    {
+        auto tmp = list.back();
+        if (tmp->dirty)
+            file.write(tmp->address, tmp->data);
+        node_map.erase(tmp->address);
+        list.pop_back();
     }
 };
 
