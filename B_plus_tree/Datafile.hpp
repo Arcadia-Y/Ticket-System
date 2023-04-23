@@ -17,8 +17,8 @@ public:
         if (!pos)
         {
             Block tmp;
-            file.write(sizeof(long), tmp);
-            pos = sizeof(long);
+            pos = file.new_space();
+            file.write(pos, tmp);
         }
     }
     ~Datafile()
@@ -40,10 +40,9 @@ public:
 
     void delete_space(long address)
     {
-        long offset = (address - sizeof(long)) % sizeof(Block);
+        long offset = (address - 2 * sizeof(long)) % sizeof(Block);
         long block_address = address - offset;
         Block* block = file.readwrite(block_address);
-        int locat = offset / sizeof(V);
         if (--block->size) return;
         if (block_address != pos)
             file.delete_space(block_address);
@@ -51,21 +50,21 @@ public:
 
     void write(long address, const V& value)
     {
-        long offset = (address - sizeof(long)) % sizeof(Block);
+        long offset = (address - 2 * sizeof(long)) % sizeof(Block);
         Block* block = file.readwrite(address - offset);
         block->data[offset / sizeof(V)] = value;
     }
 
     const V* readonly(long address)
     {
-        long offset = (address - sizeof(long)) % sizeof(Block);
+        long offset = (address - 2 * sizeof(long)) % sizeof(Block);
         const Block* block = file.readonly(address - offset);
         return (block->data + offset / sizeof(V));
     }
 
     V* readwrite(long address)
     {
-        long offset = (address - sizeof(long)) % sizeof(Block);
+        long offset = (address - 2 * sizeof(long)) % sizeof(Block);
         Block* block = file.readwrite(address - offset);
         return (block->data + offset / sizeof(V));
     }
