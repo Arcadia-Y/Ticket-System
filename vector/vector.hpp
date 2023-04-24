@@ -26,15 +26,6 @@ class vector
 		head = tmp;
 		max *= 2;
 	}
-	void shrink()
-	{
-		T* tmp = (T*)malloc(max/2 * sizeof(T));
-		for (size_t i = 0; i < now; ++i) new(tmp+i) T(head[i]);
-		for (size_t i = 0; i < now; ++i) (head+i)->~T();
-		free(head);
-		head = tmp;
-		max /= 2;
-	}
 
 public:
 	/**
@@ -456,7 +447,6 @@ public:
 			head[i] = head[i+1];
 		--now;
 		(head+now)->~T();
-		if (now < max/2) shrink();
 		return iterator(head, ind); 
 	}
 	/**
@@ -477,7 +467,6 @@ public:
 		if (now == 0) throw container_is_empty();
 		--now;
 		(head+now)->~T();
-		if (now < max/2) shrink();
 	}
 };
 
