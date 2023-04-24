@@ -40,7 +40,7 @@ public:
 
     void delete_space(long address)
     {
-        long offset = (address - 2 * sizeof(long)) % sizeof(Block);
+        long offset = (address - 3 * sizeof(long)) % sizeof(Block);
         long block_address = address - offset;
         Block* block = file.readwrite(block_address);
         if (--block->size) return;
@@ -50,21 +50,21 @@ public:
 
     void write(long address, const V& value)
     {
-        long offset = (address - 2 * sizeof(long)) % sizeof(Block);
+        long offset = (address - 3 * sizeof(long)) % sizeof(Block);
         Block* block = file.readwrite(address - offset);
         block->data[offset / sizeof(V)] = value;
     }
 
     const V* readonly(long address)
     {
-        long offset = (address - 2 * sizeof(long)) % sizeof(Block);
+        long offset = (address - 3 * sizeof(long)) % sizeof(Block);
         const Block* block = file.readonly(address - offset);
         return (block->data + offset / sizeof(V));
     }
 
     V* readwrite(long address)
     {
-        long offset = (address - 2 * sizeof(long)) % sizeof(Block);
+        long offset = (address - 3 * sizeof(long)) % sizeof(Block);
         Block* block = file.readwrite(address - offset);
         return (block->data + offset / sizeof(V));
     }

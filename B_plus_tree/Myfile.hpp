@@ -19,13 +19,13 @@ class Basefile
 public:
     Basefile(const std::string& name, const Header& _header)
     {
-        data_cursor = sizeof(long) + sizeof(Header);
         header = _header;
         data.open(name+".db");
         if (data.good())
         {
             data.seekg(0);
             data.read(reinterpret_cast <char *> (&data_cursor), sizeof(long));
+            data.read(reinterpret_cast <char *> (&pool_cursor), sizeof(long));
             data.read(reinterpret_cast <char *> (&header), sizeof(Header));
         }
         else
@@ -34,22 +34,8 @@ public:
             data.close();
             data.open(name+".db");
             data.write(reinterpret_cast <char *> (&data_cursor), sizeof(long));
+            data.write(reinterpret_cast <char *> (&pool_cursor), sizeof(long));
             data.write(reinterpret_cast <char *> (&header), sizeof(Header));
-        }
-        pool.open(name+"_pool.db");
-        if (pool.good())
-        {
-            pool.seekg(0);
-            pool.read(reinterpret_cast <char *> (&pool_cursor), sizeof(long));
-            pool.seekg(pool_cursor);
-            pool.read(reinterpret_cast <char *> (&pool_cache), sizeof(Pool_Cache));
-        }
-        else
-        {
-            pool.open(name+"_pool.db", std::ios::out);
-            pool.close();
-            pool.open(name+"_pool.db");
-            pool.write(reinterpret_cast <char *> (&pool_cursor), sizeof(long));
         }
     }
 
@@ -57,34 +43,23 @@ public:
     {
         data.seekp(0);
         data.write(reinterpret_cast <char *> (&data_cursor), sizeof(long));
+        data.write(reinterpret_cast <char *> (&pool_cursor), sizeof(long));
         data.write(reinterpret_cast <char *> (&header), sizeof(Header));
         data.close();
-        pool.seekp(0);
-        pool.write(reinterpret_cast <char *> (&pool_cursor), sizeof(long));
-        pool.seekp(pool_cursor);
-        pool.write(reinterpret_cast <char *> (&pool_cache), sizeof(Pool_Cache));
-        pool.close();
     }
 
     long new_space()
     {
         long address;
-        if (pool_cache.size == 0)
+        if (!pool_cursor)
         {
-            if (pool_cursor != sizeof(long))
-            {
-                pool_cursor -= sizeof(Pool_Cache);
-                pool.seekg(pool_cursor);
-                pool.read(reinterpret_cast <char *> (&pool_cache), sizeof(Pool_Cache));
-            }
-            else
-            {
-                address = data_cursor;
-                data_cursor += sizeof(T);
-                return address;
-            }
+            address = data_cursor;
+            data_cursor += sizeof(T);
+            return address;
         }
-        address = pool_cache.data[--pool_cache.size];
+        address = pool_cursor;
+        data.seekg(pool_cursor);
+        data.read(reinterpret_cast <char *> (&pool_cursor), sizeof(long));
         return address;
     }
 
@@ -95,14 +70,9 @@ public:
             data_cursor = address;
             return;
         }
-        pool_cache.data[pool_cache.size] = address;
-        if (++pool_cache.size == MAX_POOL_CACHE)
-        {
-            pool.seekp(pool_cursor);
-            pool.write(reinterpret_cast <char *> (&pool_cache), sizeof(Pool_Cache));
-            pool_cursor += sizeof(Pool_Cache);
-            pool_cache.size = 0;
-        }
+        std::swap(pool_cursor, address);
+        data.seekp(pool_cursor);
+        data.write(reinterpret_cast <char *> (&address), sizeof(long));
     }
 
     inline void read(long address, T& value)
@@ -124,16 +94,9 @@ public:
 
 private:
     std::fstream data;
-    std::fstream pool;
-    long data_cursor = sizeof(long) + sizeof(Header);
+    long data_cursor = 2*sizeof(long) + sizeof(Header);
+    long pool_cursor = 0;
     Header header;
-    long pool_cursor = sizeof(long);
-    struct Pool_Cache
-    {
-        long data[MAX_POOL_CACHE];
-        int size = 0;
-    } pool_cache;
-
 };
 
 template<typename T>
