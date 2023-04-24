@@ -2,8 +2,9 @@
 #ifndef BPT_HPP
 #define BPT_HPP
 
-#include "Myfile.hpp"
-#include "Datafile.hpp"
+#include "../file/Myfile.hpp"
+#include "../file/Datafile.hpp"
+#include "../algorithm.hpp"
 
 namespace sjtu
 {
@@ -83,40 +84,6 @@ private:
     Comp comp;
     Myfile<Node, long> file;
     Datafile<V> data;
-
-    template<typename T1, typename T2, typename Compare>
-    T1* lower_bound(T1* begin, T1* end, const T2& tofind, Compare comp)
-    {
-        int dist = end - begin;
-        while (dist > 3)
-        {
-            T1* mid = begin + (dist >> 1);
-            if (comp(*mid, tofind))
-                begin = mid + 1;
-            else 
-                end = mid + 1;
-            dist = end - begin;
-        }
-        while (begin != end && comp(*begin, tofind)) begin++;
-        return begin;
-    }
-
-    template<typename T1, typename T2, typename Compare>
-    T1* upper_bound(T1* begin, T1* end, const T2& tofind, Compare comp)
-    {
-        int dist = end - begin;
-        while (dist > 3)
-        {
-            T1* mid = begin + (dist >> 1);
-            if (comp(tofind, *mid))
-                end = mid + 1;
-            else 
-                begin = mid + 1;
-            dist = end - begin;
-        }
-        while (begin != end && !comp(tofind, *begin)) begin++;
-        return begin;
-    }
 
     long find_Node(const K& key)
     {

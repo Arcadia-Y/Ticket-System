@@ -6,7 +6,6 @@
 #include <fstream>
 #include <cstring>
 
-#define MAX_POOL_CACHE 1000
 #define MAX_CACHE 1200
 #define HASH_SIZE 2027
 
