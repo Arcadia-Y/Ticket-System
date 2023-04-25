@@ -3,8 +3,8 @@
 #define MULTI_BPT_HPP
 
 #include "../file/Myfile.hpp"
-#include "../vector/vector.hpp"
-#include "../algorithm.hpp"
+#include "../STLite/vector.hpp"
+#include "../STLite/algorithm.hpp"
 
 namespace sjtu
 {

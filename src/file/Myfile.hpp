@@ -5,6 +5,7 @@
 
 #include <fstream>
 #include <cstring>
+#include "../STLite/allocator.hpp"
 
 #define MAX_CACHE 1200
 #define HASH_SIZE 2027
@@ -111,33 +112,28 @@ public:
         T data;
         Cache_Node(long a, const T& v, bool w, Cache_Node* p = nullptr, Cache_Node* n = nullptr):
         address(a), data(v), dirty(w), pre(p), next(n) {}
+        Cache_Node() {}
     };
 
     Cache_List()
     {
-        head = (Cache_Node*) malloc(sizeof(Cache_Node));
-        end = (Cache_Node*) malloc(sizeof(Cache_Node));
+        head = memory.new_space();
+        end = memory.new_space();
         head->pre = end->next = nullptr;
         end->pre = head;
         head->next = end;
     }
     
-    ~Cache_List()
-    {
-        Cache_Node* tmp = head->next;
-        free(head);
-        while (tmp != end)
-        {
-            Cache_Node* next = tmp->next;
-            delete tmp;
-            tmp = next;
-        }
-        free(end);
-    }
+    ~Cache_List() = default;
 
     Cache_Node* push_front(long address, const T& data, bool write)
     {
-        Cache_Node* tmp = new Cache_Node(address, data, write, head, head->next);
+        Cache_Node* tmp = memory.new_space();
+        tmp->address = address;
+        tmp->data = data;
+        tmp->dirty = write;
+        tmp->pre = head;
+        tmp->next = head->next;
         head->next = tmp;
         tmp->next->pre = tmp;
         Size++;
@@ -150,7 +146,7 @@ public:
         Cache_Node* topop = end->pre;
         end->pre = topop->pre;
         topop->pre->next = end;
-        delete topop;
+        memory.delete_space(topop);
         Size--;
     }
 
@@ -158,7 +154,7 @@ public:
     {
         toerase->pre->next = toerase->next;
         toerase->next->pre = toerase->pre;
-        delete toerase;
+        memory.delete_space(toerase);
         Size--;
     }
 
@@ -197,26 +193,12 @@ private:
     int Size = 0;
     Cache_Node* head;
     Cache_Node* end;
+    allocator<Cache_Node, MAX_CACHE+5> memory;
 };
 
 class Hashmap
 {
 public:
-    ~Hashmap()
-    {
-        Node* toerase, *next;
-        for (int i = 0; i < HASH_SIZE; i++)
-        {
-            toerase = array[i].next;
-            while (toerase != nullptr)
-            {
-                next = toerase->next;
-                delete toerase;
-                toerase = next;
-            }
-        }
-    }
-
     long find(long key)
     {
         Node* res = array[key % HASH_SIZE].next;
@@ -234,7 +216,10 @@ public:
         Node* pre = &array[key % HASH_SIZE];
         while (pre->next != nullptr)
             pre = pre->next;
-        pre->next = new Node(key, data);
+        pre->next = memory.new_space();
+        pre->next->key = key;
+        pre->next->data = data;
+        pre->next->next = nullptr;
     }
 
     void erase(long key)
@@ -246,7 +231,7 @@ public:
             if (toerase->key == key)
             {
                 pre->next = toerase->next;
-                delete toerase;
+                memory.delete_space(toerase);
                 return;
             }
             pre = toerase;
@@ -263,6 +248,7 @@ private:
         Node(long k, long d): key(k), data(d), next(nullptr) {}
     };
     Node array[HASH_SIZE];
+    allocator<Node, MAX_CACHE+5> memory;
 };
 
 template<typename T, typename Header>

@@ -4,7 +4,7 @@
 
 #include "../file/Myfile.hpp"
 #include "../file/Datafile.hpp"
-#include "../algorithm.hpp"
+#include "../STLite/algorithm.hpp"
 
 namespace sjtu
 {
