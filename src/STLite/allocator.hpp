@@ -2,7 +2,8 @@
 # ifndef SJTU_ALLOCATOR_HPP
 # define SJTU_ALLOCATOR_HPP
 
-#include <cstdlib>
+#include <iostream>
+
 namespace sjtu
 {
 
