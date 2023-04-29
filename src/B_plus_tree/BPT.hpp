@@ -70,6 +70,12 @@ public:
         erase_leaf(find_Node(key), key);
     }
 
+    bool empty() const
+    {
+        if (!head) return true;
+        return false;
+    }
+
 private:
     constexpr static int DEGREE = 4000 / (sizeof(long) + sizeof(K));
     struct Node
