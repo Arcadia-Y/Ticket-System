@@ -28,9 +28,9 @@ public:
         return userdb.empty();
     }
 
-    int add_first_user(const std::string& name, const User_Data& data)
+    int add_first_user(const std::string& username, const User_Data& data)
     {
-        userdb.insert(name, data);
+        userdb.insert(username, data);
         return 0;
     }
 
@@ -77,7 +77,7 @@ public:
         auto info = userdb.readonly(c);
         char c_priv = info->priv;
         info = userdb.readonly(u);
-        if (info == nullptr || c_priv < info->priv)
+        if (c != u && (info == nullptr || c_priv <= info->priv))
         {
             std::cout << "-1\n";
             return;
@@ -85,18 +85,31 @@ public:
         std::cout << u << ' ' << info->name << ' ' << info->mail << ' ' << (short)info->priv << '\n';
     }
 
-    User_Data* get_profile(const std::string& c, const std::string& u)
+    User_Data* get_profile(const std::string& c, const std::string& u, char& c_priv)
     {
         auto found = user_list.find(c);
         if (found == user_list.end() || !found->second)
             return nullptr;
         auto info = userdb.readonly(c);
-        char c_priv = info->priv;
+        c_priv = info->priv;
         info = userdb.readonly(u);
         if (info == nullptr || c_priv < info->priv)
             return nullptr;
         auto res = userdb.readwrite(u);
         return res;
+    }
+
+    bool check_login(const std::string& u)
+    {
+        auto found = user_list.find(u);
+        if (found == user_list.end() || !found->second) return false;
+        return true;
+    }
+
+    void clean()
+    {
+        userdb.clean();
+        user_list.clear();
     }
 
 private:

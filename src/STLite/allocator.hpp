@@ -36,6 +36,12 @@ public:
         pool_cursor = x - space;
     }
 
+    void clean()
+    {
+        data_cursor = 0;
+        pool_cursor = -1;
+    }
+
 private:
     T* space;
     int data_cursor = 0;

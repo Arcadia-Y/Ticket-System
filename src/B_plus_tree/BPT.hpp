@@ -76,6 +76,13 @@ public:
         return false;
     }
 
+    void clean()
+    {
+        file.clean();
+        data.clean();
+        head = 0;
+    }
+
 private:
     constexpr static int DEGREE = 4000 / (sizeof(long) + sizeof(K));
     struct Node

@@ -396,7 +396,7 @@ public:
 	{
 		for (size_t i = 0; i < now; ++i) (head+i)->~T();
 		free(head);
-		head = malloc(sizeof(T));
+		head = (T*) malloc(sizeof(T));
 		max = 1;
 		now = 0;
 	}

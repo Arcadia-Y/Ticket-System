@@ -17,8 +17,9 @@ template<typename T, typename Header>
 class Basefile
 {
 public:
-    Basefile(const std::string& name, const Header& _header)
+    Basefile(const std::string& _name, const Header& _header)
     {
+        name = _name;
         header = _header;
         data.open(name+".db");
         if (data.good())
@@ -92,11 +93,22 @@ public:
         return header;
     }
 
+    void clean()
+    {
+        data_cursor = 2*sizeof(long) + sizeof(Header);
+        pool_cursor = 0;
+        data.close();
+        data.open(name+".db", std::ios::out);
+        data.close();
+        data.open(name+".db");
+    }
+
 private:
     std::fstream data;
     long data_cursor = 2*sizeof(long) + sizeof(Header);
     long pool_cursor = 0;
     Header header;
+    std::string name; 
 };
 
 template<typename T>
@@ -189,6 +201,16 @@ public:
         return end->pre;
     }
 
+    void clean()
+    {
+        memory.clean();
+        head = memory.new_space();
+        end = memory.new_space();
+        head->pre = end->next = nullptr;
+        end->pre = head;
+        head->next = end;
+    }
+
 private:
     int Size = 0;
     Cache_Node* head;
@@ -199,6 +221,9 @@ private:
 class Hashmap
 {
 public:
+    Hashmap() = default;
+    ~Hashmap() = default;
+    
     long find(long key)
     {
         Node* res = array[key % HASH_SIZE].next;
@@ -238,6 +263,14 @@ public:
             toerase = toerase->next;
         }
     }
+
+    void clean()
+    {
+        memory.clean();
+        for (int i = 0; i < HASH_SIZE; i++)
+            array[i].next = nullptr;
+    }
+
 private:
     struct Node
     {
@@ -329,6 +362,14 @@ public:
              node_map.erase(address);
         }
     }
+
+    void clean()
+    {
+        file.clean();
+        list.clean();
+        node_map.clean();
+    }
+
 private:
     Basefile<T, Header> file;
     Cache_List<T> list;

@@ -73,6 +73,13 @@ public:
         if (!head) return;
         erase_leaf(find_Node(key, value), key, value);
     }
+
+    void clean()
+    {
+        file.clean();
+        head = 0;
+    }
+
 private:
     constexpr static int DEGREE = 4000 / (sizeof(long) + sizeof(K) + sizeof(V));
     struct KVpair

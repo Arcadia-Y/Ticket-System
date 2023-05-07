@@ -1,6 +1,7 @@
 # ifndef MYSTRING_HPP
 # define MYSTRING_HPP
 
+#include <iostream>
 #include <string>
 
 namespace sjtu
@@ -16,17 +17,26 @@ struct Mystring
     {
         strcpy(string, s.c_str());
     }
-    Mystring(char *s)
+    Mystring(const char *s)
     {
         strcpy(string, s);
     }
-    friend bool operator<(const Mystring &a, const Mystring &b)
+    void operator=(Mystring other)
+    {
+        strcpy(string, other.string);
+    }
+    friend bool operator<(Mystring a, Mystring b)
     {
         return strcmp(a.string, b.string) < 0;
     }
-    friend bool operator==(const Mystring &a, const Mystring &b)
+    friend bool operator==(Mystring a, Mystring b)
     {
         return strcmp(a.string, b.string) == 0;
+    }
+    friend std::ostream& operator<<(std::ostream& out, Mystring s)
+    {
+        out << s.string;
+        return out;
     }
 };
 

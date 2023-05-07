@@ -69,6 +69,12 @@ public:
         return (block->data + offset / sizeof(V));
     }
 
+    void clean()
+    {
+        file.clean();
+        pos = 0;
+    }
+
 private:
     constexpr static int MAXSIZE = std::max(4000/sizeof(V), 1UL);
     struct Block
