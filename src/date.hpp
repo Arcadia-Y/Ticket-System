@@ -1,4 +1,4 @@
-// a class to handle dates
+// a class to handle date and time
 #ifndef DATE_HPP
 #define DATE_HPP
 
@@ -43,6 +43,13 @@ struct Date
         while (x--) this->operator++();
     }
 
+    Date operator+(int x) const
+    {
+        Date res = *this;
+        res += x;
+        return res;
+    }
+
     void operator--()
     {
         if (--d > 0) return;
@@ -60,7 +67,7 @@ struct Date
         while (x--) this->operator--();
     }
 
-    Date operator-(int x)
+    Date operator-(int x) const
     {
         Date res = *this;
         res -= x;
@@ -73,10 +80,27 @@ struct Date
         return a.d < b.d;
     }
 
+    friend bool operator==(Date a, Date b)
+    {
+        return a.m == b.m && a.d == b.d;
+    }
+
     friend std::ostream& operator<<(std::ostream& out, Date x)
     {
         out << x.m / 10 << x.m % 10 << '-' << x.d / 10 << x.d % 10;
         return out;
+    }
+
+    friend int operator-(Date a, Date b)
+    {
+        int res = 0;
+        while (a.m > b.m)
+        {
+            res += a.d;
+            a.d = 1;
+            --a;
+        }
+        return res + a.d - b.d;
     }
 };
 
@@ -95,6 +119,7 @@ struct Time
     Time operator+(int x)
     {
         Time res;
+        res.h = h;
         x += m;
         res.h += x / 60;
         res.m = x % 60;
@@ -108,7 +133,7 @@ struct Time
         m = x % 60;
     }
 
-    int operator-(Time other)
+    int operator-(Time other) const
     {
         return (h - other.h) * 60 + m - other.m;
     }
@@ -119,6 +144,12 @@ struct Time
         return out;
     }
 
+    friend bool operator<(Time a, Time b)
+    {
+        if (a.h != b.h) return a.h < b.h;
+        return a.m < b.m;
+    }
+
 };
 
 void adjust_date(Date& d, Time& t)
@@ -126,10 +157,21 @@ void adjust_date(Date& d, Time& t)
     while (t.h >= 24)
     {
         ++d;
-        --t.h;
+        t.h -= 24;
     }
 }
 
+// (d1, t1) should be earlier than (d2, t2)
+int time_between(Date d1, Time t1, Date d2, Time t2)
+{
+    if (t2 < t1)
+    {
+        t2.h += 24;
+        --d2;
+    }
+    return (d2 - d1) * 1440 + (t2 - t1);
 }
+
+} // namespace sjtu
 
 #endif

@@ -61,22 +61,23 @@ void innersort(T* first, T* last, Compare comp, T* tmp)
 		return;
 	}
 	T* mid = first + dist/2;
-	innersort(first, mid+1, comp, tmp);
-	innersort(mid+1, last, comp, tmp);
+	innersort(first, mid, comp, tmp);
+	innersort(mid, last, comp, tmp);
 	T* ptr1 = first;
 	T* ptr2 = mid;
 	int count = 0;
 	while (ptr1 != mid && ptr2 != last)
 	{
-		if (comp(*ptr1, *ptr2))
-		{
-			tmp[count] = *ptr1;
-			ptr1++;
-		}
-		else
+		if (comp(*ptr2, *ptr1))
 		{
 			tmp[count] = *ptr2;
 			ptr2++;
+			
+		}
+		else
+		{
+			tmp[count] = *ptr1;
+			ptr1++;
 		}
 		count++;
 	}

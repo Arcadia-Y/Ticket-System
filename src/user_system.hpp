@@ -93,7 +93,7 @@ public:
         auto info = userdb.readonly(c);
         c_priv = info->priv;
         info = userdb.readonly(u);
-        if (info == nullptr || c_priv < info->priv)
+        if (c != u && (info == nullptr || c_priv <= info->priv))
             return nullptr;
         auto res = userdb.readwrite(u);
         return res;

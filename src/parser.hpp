@@ -103,7 +103,7 @@ public:
                 std::cout << "-1\n";
                 return;
             }
-            train_system.buy_ticket(u, id, d, f, t, q);
+            train_system.buy_ticket(std::stoi(tokens[0].substr(1, tokens.size() - 2)), u, id, d, f, t, n, q);
         }
         else if (tokens[1] == "login")
         {
@@ -242,13 +242,12 @@ public:
             data.end_date = d[1];
             data.type = y;
             strcpy(data.stations[0], s[0].c_str());
-            data.seat[0] = m;
+            data.seat = m;
             data.leave_time[0] = x;
             data.price[0] = 0;
             for (char i = 1; i < n-1; i++)
             {
                 strcpy(data.stations[i], s[i].c_str());
-                data.seat[i] = m;
                 data.arrive_time[i-1] = data.leave_time[i-1] + std::stoi(t[i-1]);
                 data.leave_time[i] = data.arrive_time[i-1] + std::stoi(o[i-1]);
                 data.price[i] = data.price[i-1] + std::stoi(p[i-1]);
@@ -308,7 +307,10 @@ public:
                 else
                     n = std::stoi(tokens[i+1]);
             }
-            std::cout << train_system.refund_ticket(u, n-1) << '\n';
+            if (user_system.check_login(u.string))
+                std::cout << train_system.refund_ticket(u, n-1) << '\n';
+            else
+                std::cout << "-1\n";
         }
         else if (tokens[1] == "clean")
         {

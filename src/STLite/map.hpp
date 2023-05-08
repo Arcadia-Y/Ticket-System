@@ -1,10 +1,11 @@
 #ifndef SJTU_MAP_HPP
 #define SJTU_MAP_HPP
 
-#include <functional>
-#include <cstddef>
 #include "utility.hpp"
 #include "exceptions.hpp"
+
+#define RED 0
+#define BLACK 1
 
 namespace sjtu {
 
@@ -14,11 +15,6 @@ template<
 	class Compare = std::less<Key>
 > class map {
 public:
-    /**
-	 * the internal type of data.
-	 * it should have a default constructor, a copy constructor.
-	 * You can use sjtu::map as value_type by typedef.
-	 */
 	typedef pair<const Key, T> value_type;
 private:
 	Compare cmp;
@@ -26,7 +22,7 @@ private:
 
 	struct Node {
 		value_type v;
-		int h = 0;
+		bool c = RED;
 		Node* l = nullptr;
 		Node* r = nullptr;
 		Node* p = nullptr;
@@ -37,7 +33,7 @@ private:
 		if (other == nullptr)
 			return nullptr;
 		Node* ptr = newNode(other->v.first, other->v.second);
-		ptr->h = other->h;
+		ptr->c = other->c;
 		ptr->l = copyNode(other->l);
 		if (ptr->l != nullptr)
 			ptr->l->p = ptr;
@@ -57,7 +53,7 @@ private:
 	Node* newNode(const Key& k, const T& v) {
 		Node* ptr = (Node*)::operator new(sizeof(Node));
 		new (&(ptr->v)) value_type(k, v);
-		ptr->h = 0;
+		ptr->c = RED;
 		ptr->l = ptr->r = ptr->p = nullptr;
 		return ptr;
 	}
@@ -105,6 +101,7 @@ private:
 	Node* insert_Node(const Key& key, const T& value) {
 		if (head == nullptr) {
 			head = newNode(key, value);
+			head->c = BLACK;
 			++Size;
 			return head;
 		}
@@ -119,7 +116,7 @@ private:
 				parent->r = toinsert;
 		}
 		toinsert->p = parent;
-		rebalance(parent);
+		insert_rebalance(toinsert);
 		++Size;
 		return toinsert;
 	}
@@ -132,6 +129,7 @@ private:
 	void swap_with_pre(Node* x) {
 		Node* son = x->l;
 		while (son->r != nullptr) son = son->r;
+		std::swap(x->c, son->c);
 		if (son == x->l) {
 			if (x->p != nullptr) {
 				if (x->p->l == x)
@@ -153,8 +151,8 @@ private:
 			return;
 		}
 		// adjust x->l->p & son->p->r
-			x->l->p = son;
-			son->p->r = x;
+		x->l->p = son;
+		son->p->r = x;
 		// adjust x->r->p & son->l->p
 		if (x->r != nullptr)
 			x->r->p = son;
@@ -184,12 +182,13 @@ private:
 			return;
 		}
 		if (ptr->l == nullptr && ptr->r == nullptr) {
-			if (ptr->p != nullptr) {
+			if (ptr->c == BLACK)
+				erase_rebalance(ptr);
+			if (ptr != head) {
 				if (ptr->p->l == ptr)
 					ptr->p->l = nullptr;
 				else
-					ptr->p->r = nullptr;
-				rebalance(ptr->p);
+					ptr->p->r = nullptr;	
 			}
 			else head = nullptr;
 			delete ptr;
@@ -208,9 +207,14 @@ private:
 		else
 			head = son;
 		son->p = ptr->p;
+		if (ptr->c == BLACK) {
+			if (son->c == RED) 
+				son->c = BLACK;
+			else
+				erase_rebalance(son);
+		}
 		delete ptr;
 		--Size;
-		rebalance(son);
 	}
 
 	Node* rotate_Right(Node* root) {
@@ -229,8 +233,6 @@ private:
 			head = newroot;
 		newroot->p = root->p;
 		root->p = newroot;
-		update_height(root);
-		update_height(newroot);
 		return newroot;
 	}
 
@@ -250,56 +252,117 @@ private:
 			head = newroot;
 		newroot->p = root->p;
 		root->p = newroot;
-		update_height(root);
-		update_height(newroot);
 		return newroot;
 	}
 
-	int height(Node* ptr) {
-		if (ptr == nullptr) return -1;
-		return ptr->h;
+	bool color(Node* x) {
+		if (x == nullptr) return BLACK;
+		return x->c;
 	}
 
-	void update_height(Node* ptr) {		
-		ptr->h = std::max(height(ptr->l), height(ptr->r)) + 1;
-	}
-
-	void rebalance(Node* root) {
-		int origin_h = root->h;
-		update_height(root);
-		int factor = height(root->l) - height(root->r);
-		if (factor > 1) {
-			if (height(root->l->l) >= height(root->l->r)) //LL
-				root = rotate_Right(root);
-			else { //LR
-				root->l = rotate_Left(root->l);
-				root = rotate_Right(root);
-			}
-		}
-		else if (factor < -1) {
-			if (height(root->r->r) >= height(root->r->l)) //RR
-				root = rotate_Left(root);
-			else { //RL
-				root->r = rotate_Right(root->r);
-				root = rotate_Left(root);
-			}
-		}
-		if (root->p == nullptr) {
-			head = root;
+	void insert_rebalance(Node* n) {
+		Node* p = n->p;
+		if (p == nullptr) {
+			n->c = BLACK;
 			return;
 		}
-		if (root->h == origin_h) return;
- 		rebalance(root->p);
+		if (p->c == BLACK) return;
+		Node* g = p->p;
+		Node* u;
+		bool p_is_l;
+		if (g->l == p) {
+			p_is_l = true;
+			u = g->r;
+		}
+		else {
+			p_is_l = false;
+			u = g->l;
+		}
+		if (color(u) == RED) {
+			p->c = u->c = BLACK;
+			g->c = RED;
+			insert_rebalance(g);
+			return;
+		}
+		bool n_is_l;
+		if (p->l == n) n_is_l = true;
+		else n_is_l = false;
+		if (p_is_l && !n_is_l) { 
+			Node* tmpp = p;
+			p = rotate_Left(p);
+			n = tmpp;
+		}
+		else if (!p_is_l && n_is_l) { 
+			Node* tmpp = p;
+			p = rotate_Right(p);
+			n = tmpp;
+		}
+		if (p_is_l) 
+			p = rotate_Right(g);
+		else 
+			p = rotate_Left(g);
+		p->c = BLACK;
+		g->c = RED;
+	}
+
+	void erase_rebalance(Node* n) {
+		Node* p = n->p;
+		if (p == nullptr) return;
+		Node* s;
+		bool n_is_l;
+		if (p->l == n) {
+			s = p->r;
+			n_is_l = true;
+		} else {
+			s = p->l;
+			n_is_l = false;
+		}
+		if (color(s) == RED) {
+			if (n_is_l) {
+				rotate_Left(p);
+				s->c = BLACK;
+				p->c = RED;
+				s = p->r;
+			} else {
+				rotate_Right(p);
+				s->c = BLACK;
+				p->c = RED;
+				s = p->l;
+			}
+		}
+		Node *c, *d;
+		if (n_is_l) {
+			c = s->l;
+			d = s->r;
+		} else {
+			c = s->r;
+			d = s->l;
+		}
+		if (color(c) == BLACK && color(d) == BLACK) {
+			if (p->c == RED) {
+				s->c = RED;
+				p->c = BLACK;
+				return;
+			}
+			s->c = RED;
+			erase_rebalance(p);
+			return;
+		}
+		if (color(d) == BLACK) {
+			if (n_is_l) rotate_Right(s);
+			else rotate_Left(s);
+			c->c = BLACK;
+			s->c = RED;
+			d = s;
+			s = c;
+		}
+		if (n_is_l) rotate_Left(p);
+		else rotate_Right(p);
+		d->c = BLACK;
+		std::swap(s->c, p->c);
 	}
 
 public:
-	/**
-	 * see BidirectionalIterator at CppReference for help.
-	 *
-	 * if there is anything wrong throw invalid_iterator.
-	 *     like it = map.begin(); --it;
-	 *       or it = map.end(); ++end();
-	 */
 	class const_iterator;
 	class iterator {
 	private:
@@ -459,11 +522,6 @@ public:
 		bool operator!=(const const_iterator &rhs) const {
 			return !(*this == rhs);
 		}
-
-		/**
-		 * for the support of it->first. 
-		 * See <http://kelvinh.github.io/blog/2013/11/20/overloading-of-member-access-operator-dash-greater-than-symbol-in-cpp/> for help.
-		 */
 		value_type* operator->() const noexcept {
 			return &(ptr->v);
 		}
@@ -472,8 +530,6 @@ public:
 		friend class const_iterator;
 	};
 	class const_iterator {
-		// it should has similar member method as iterator.
-		//  and it should be able to construct from an iterator.
 	private:
 		Node* root = nullptr;
 		Node* ptr = nullptr;
@@ -639,9 +695,6 @@ public:
 		}
 		friend class iterator;
 	};
-	/**
-	 * two constructors
-	 */
 	map() = default;
 	map(const map &other) {
 		head = copyNode(other.head);
