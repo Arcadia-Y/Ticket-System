@@ -299,7 +299,7 @@ public:
         int left = 1e9;
         for (int i = f_id; i < t_id; i++)
             left = std::min(left, seat->s[i]);
-        if (left < n && !q)
+        if ((left < n && !q) || n > train->seat)
         {
             std::cout << "-1\n";
             return;
