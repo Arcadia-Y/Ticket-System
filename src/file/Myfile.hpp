@@ -7,8 +7,8 @@
 #include <cstring>
 #include "../STLite/allocator.hpp"
 
-#define MAX_CACHE 1200
-#define HASH_SIZE 2027
+#define MAX_CACHE 600
+#define HASH_SIZE 1019
 
 namespace sjtu
 {
