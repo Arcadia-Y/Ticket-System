@@ -21,7 +21,7 @@ struct Date
         d = 10 * (s[3] - '0') + s[4] - '0';
     }
 
-    void operator++()
+    inline void operator++()
     {
         if (++d < 31) return;
         if (d == 31)
@@ -38,19 +38,31 @@ struct Date
         d = 1;
     }
 
-    void operator+=(int x)
+    inline void operator+=(int x)
     {
-        while (x--) this->operator++();
+        d += x;
+        if (d < 31) return;
+        if (d == 31)
+        {
+            if (m == 6)
+            {
+                ++m;
+                d -= 30;
+            }
+            return;
+        }
+        ++m;
+        d -= 31;
     }
 
-    Date operator+(int x) const
+    inline Date operator+(int x) const
     {
         Date res = *this;
         res += x;
         return res;
     }
 
-    void operator--()
+    inline void operator--()
     {
         if (--d > 0) return;
         --m;
@@ -62,25 +74,33 @@ struct Date
         d = 31;
     }
 
-    void operator-=(int x)
+    inline void operator-=(int x)
     {
-        while (x--) this->operator--();
+        if (d > x)
+        {
+            d -= x;
+            return;
+        }
+        --m;
+        d += 31;
+        if (m == 6)  --d;
+        d -= x;
     }
 
-    Date operator-(int x) const
+    inline Date operator-(int x) const
     {
         Date res = *this;
         res -= x;
         return res;
     }
 
-    friend bool operator<(Date a, Date b)
+    inline friend bool operator<(Date a, Date b)
     {
         if (a.m != b.m) return a.m < b.m;
         return a.d < b.d;
     }
 
-    friend bool operator==(Date a, Date b)
+    inline friend bool operator==(Date a, Date b)
     {
         return a.m == b.m && a.d == b.d;
     }
