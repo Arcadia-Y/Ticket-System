@@ -153,9 +153,11 @@ public:
     // p = 0 for "-p time", p = 1 for "-p cost"
     void query_ticket(const Mystring<31>& a, const Mystring<31>& b, Date d, bool p) 
     {
-        vector<Index_Info> candidate;
+        vector<Index_Info> av, bv, candidate;
         vector<char> to_num;
-        find_train(a, b, candidate, to_num);
+        train_index.find(a, av);
+        train_index.find(b, bv);
+        find_train(av, bv, candidate, to_num);
         int size = candidate.size();
         Journey_Data journey;
         vector<Journey_Data> res;
@@ -224,7 +226,8 @@ public:
     {
         Transfer_Info info;
         info.cost = info.time = 1e9;
-        if (!find_transfer(a, b, d, p, info))
+        find_transfer(a, b, d, p, info);
+        if (info.time == 1e9)
         {
             std::cout << "0\n";
             return;
@@ -472,6 +475,20 @@ private:
         char t_id[2];
         
     };
+    struct Transfer_Index
+    {
+        int cost;
+        Time t1; // leave_time of a
+        Time t2; // arrive_time of tranfer station
+        char f_id;
+        char t_id;
+    };
+    struct B_Tansfer_Index
+    {
+        Date start;
+        Date end;
+        char offset;
+    };
     BPT<Mystring<21>, Train_Data> train_db;
     Multi_BPT<Mystring<31>, Index_Info> train_index; // station name as index
     BPT<Seat_Index, Seats> seat_db;
@@ -480,11 +497,8 @@ private:
     Multi_BPT<Seat_Index, int> order_queue; // int is timestamp
 
     // find all trains that go from a to b
-    void find_train(const Mystring<31>& a, const Mystring<31>& b, vector<Index_Info>& res, vector<char>& to_num)
+    void find_train(vector<Index_Info>& av, vector<Index_Info>& bv, vector<Index_Info>& res, vector<char>& to_num)
     {
-        vector<Index_Info> av, bv;
-        train_index.find(a, av);
-        train_index.find(b, bv);
         if (av.empty() || bv.empty()) return;
         auto aptr = av.begin();
         auto bptr = bv.begin();
@@ -519,6 +533,40 @@ private:
         }
     }
 
+    // find possible transfer station and mark invalid train
+    void find_common_station(vector<Index_Info>& a_index, vector<Index_Info>& b_index, Date d,  map<Mystring<31>,bool>& res)
+    {
+        map<Mystring<31>, bool> from_a;
+        for (int i = 0; i < a_index.size(); i++)
+        {
+            // check date
+            auto train = train_db.readonly(a_index[i].train_id);
+            int offset = train->leave_time[a_index[i].num].h / 24;
+            Date require_d = d - offset;
+            if (require_d < train->start_date || train->end_date < require_d)
+            {
+                a_index[i].num = MAXSTA;
+                continue;
+            }
+            // insert
+            for (char j = a_index[i].num + 1; j < train->station_num; j++)
+                from_a[train->stations[j]] = true;
+        }
+        vector<Transfer_Index> blank;
+        for (int i = 0; i < b_index.size(); i++)
+        {
+            auto train = train_db.readonly(b_index[i].train_id);
+            if (train->end_date + train->arrive_time[train->station_num-2].h / 24 < d)
+            {
+                b_index[i].num = MAXSTA;
+                continue;
+            }
+            for (char j = 0; j < b_index[i].num; j++)
+                if (from_a.find(train->stations[j]) != from_a.end())
+                    res[train->stations[j]] = true;
+        }
+    }
+
     static bool transfer_comp_time(const Transfer_Info& a, const Transfer_Info& b)
     {
         if (a.time != b.time) return a.time < b.time;
@@ -535,110 +583,230 @@ private:
         return a.train_id[1] < b.train_id[1];
     }
 
-    // find the best transfer info
-    bool find_transfer(const Mystring<31>& a, const Mystring<31>& b, Date d, bool p, Transfer_Info& ret)
+    void check_transfer_station_time(const vector<Index_Info>& a_train, const vector<Index_Info>& b_train, const vector<char>& a_to_num,
+        const vector<char>& b_to_num, Date d, Transfer_Info& res)
     {
-        bool (*comp)(const Transfer_Info& a, const Transfer_Info& b);
-        if (!p) comp = transfer_comp_time;
-        else comp = transfer_comp_cost;
-        bool flag = false;
-        vector<Index_Info> a_index, b_index;
-        train_index.find(a, a_index);
-        // from_a: station as index, pair<id in a_index, t_id> as value
-        map<Mystring<31>, vector<pair<int, char>>> from_a;
-        // insert reachable city into from_a
-        for (int i = 0; i < a_index.size(); i++)
+        vector<Transfer_Index> a_index, b_index;
+        vector<B_Tansfer_Index> b_info;
+        int a_size = a_train.size(), b_size = b_train.size();
+        a_index.reserve(a_size+1);
+        b_index.reserve(b_size+1);
+        b_info.reserve(b_size+1);
+        int* a_ptr = new int[a_size];
+        int* b_ptr = new int[b_size];
+        // fill in index_info
+        for (int i = 0; i < a_size; i++)
         {
-            // check date
-            auto train = train_db.readonly(a_index[i].train_id);
-            int offset = train->leave_time[a_index[i].num].h / 24;
-            Date require_d = d - offset;
-            if (require_d < train->start_date || train->end_date < require_d)
-                continue;
-            // insert
-            for (char j = a_index[i].num + 1; j < train->station_num; j++)
-            {
-                if (train->stations[j] == b) continue;
-                pair<int, char> toinsert(i, j);
-                auto found = from_a.find(train->stations[j]);
-                if (found == from_a.end())
-                {
-                    vector<pair<int, char>> tmp_v;
-                    tmp_v.push_back(toinsert);
-                    from_a.insert(pair<Mystring<31>, vector<pair<int, char>>>(train->stations[j], tmp_v));
-                }
-                else
-                {
-                    found->second.push_back(toinsert);
-                }
-            }
+            auto train = train_db.readonly(a_train[i].train_id);
+            a_ptr[i] = i;
+            a_index[i].f_id = a_train[i].num;
+            a_index[i].t_id = a_to_num[i];
+            a_index[i].t1 = train->leave_time[a_index[i].f_id];
+            a_index[i].t2 = train->arrive_time[a_index[i].t_id-1];
+            char a_offset = a_index[i].t1.h / 24;
+            a_index[i].t1.h -= a_offset * 24;
+            a_index[i].t2.h -= a_offset * 24;
+            a_index[i].cost = train->price[a_index[i].t_id] - train->price[a_index[i].f_id];
         }
-        if (from_a.empty()) return flag;
-        // iterate over trains passing by b
-        train_index.find(b, b_index);
+        for (int i = 0; i < b_size; i++)
+        {
+            auto train = train_db.readonly(b_train[i].train_id);
+            b_ptr[i] = i;
+            b_index[i].f_id = b_train[i].num;
+            b_index[i].t_id = b_to_num[i];
+            b_index[i].t1 = train->leave_time[b_index[i].f_id];
+            b_index[i].t2 = train->arrive_time[b_index[i].t_id-1];
+            b_index[i].cost = train->price[b_index[i].t_id] - train->price[b_index[i].f_id];
+            b_info[i].start = train->start_date;
+            b_info[i].end = train->end_date;
+            b_info[i].offset = b_index[i].t1.h / 24;
+            b_index[i].t1.h -= b_info[i].offset * 24;
+            b_index[i].t2.h -= b_info[i].offset * 24;
+        }
+        sort(a_ptr, a_ptr+a_size, [&a_index](int x, int y){ return a_index[x].t2 < a_index[y].t2;});
+        int* a_final = new int[a_size];
+        a_final[0] = a_ptr[0];
+        int a_cnt = 1;
+        for (int i = 1; i < a_size; ++i)
+        {
+            if (a_index[a_ptr[i]].t1 < a_index[a_final[a_cnt-1]].t1) continue;
+            a_final[a_cnt] = a_ptr[i];
+            ++a_cnt;
+        }
+        delete []a_ptr;
+        sort(b_ptr, b_ptr+b_size, [&b_info](int x, int y){ return b_info[y].end + b_info[y].offset < b_info[x].end + b_info[x].offset;});
+        int b_last = b_size;
         Transfer_Info tmp_info;
-        for (int i = 0; i < b_index.size(); i++)
+        for (int i = 0; i < a_cnt; i++)
         {
-            // check date (roughly)
-            char b_id = b_index[i].num;
-            auto b_train = train_db.readonly(b_index[i].train_id);
-            int offset = b_train->arrive_time[b_id-1].h / 24;
-            Time b_arrive_t = b_train->arrive_time[b_id];
-            b_arrive_t.h -= 24 * offset;
-            Date require_d = d - offset;
-            if (b_train->end_date < require_d)
-                continue;
-            // iterate over stations earlier than b
-            tmp_info.train_id[1] = b_index[i].train_id;
-            tmp_info.t_id[1] = b_id;
-            for (int j = 0; j < b_id; j++)
+            int I = a_final[i];
+            char a_offset = a_index[I].t2.h / 24;
+            a_index[I].t2.h -= a_offset * 24;
+            tmp_info.train_id[0] = a_train[I].train_id;
+            tmp_info.f_id[0] = a_train[I].num;
+            tmp_info.t_id[0] = a_to_num[I];
+            for (int j = 0; j < b_last; j++)
             {
-                auto found = from_a.find(b_train->stations[j]);
-                if (found == from_a.end()) continue;
-                // iterate over possible train[0]
-                for (auto k = found->second.begin(); k != found->second.end(); k++)
+                int J = b_ptr[j];
+                Date require_d = d + a_offset - b_info[J].offset + (int)(b_index[J].t1 < a_index[I].t2);
+                if (b_info[J].end < require_d)
                 {
-                    auto a_id = a_index[(*k).first].train_id;
-                    // check duplicate
-                    if (a_id == b_index[i].train_id)
-                        continue;
-                    char f_id = a_index[(*k).first].num;
-                    char t_id = (*k).second;
-                    auto a_train = train_db.readonly(a_id);
-                    // find earliest required departure date of b_train
-                    Time a_t = a_train->leave_time[f_id], t_t = a_train->arrive_time[t_id-1];
-                    Date t_d = d;
-                    t_d += t_t.h / 24 - a_t.h / 24;
-                    t_t.h %= 24;
-                    Time b_leave_t = b_train->leave_time[j];
-                    offset = b_leave_t.h / 24;
-                    b_leave_t.h %= 24;
-                    require_d = t_d - offset + (int)(b_leave_t < t_t);
-                    if (b_train->end_date < require_d)
-                        continue;
-                    // fill in tmp_info
-                    flag = true;
-                    tmp_info.train_id[0] = a_id;
-                    tmp_info.date = std::max(b_train->start_date, require_d);
-                    tmp_info.time = (a_train->arrive_time[t_id-1] - a_train->leave_time[f_id]) +
-                        time_between(t_d, t_t, tmp_info.date + offset, b_leave_t) + 
-                        (b_train->arrive_time[b_id-1] - b_train->leave_time[j]);
-                    tmp_info.cost = (a_train->price[t_id] - a_train->price[f_id]) + 
-                        (b_train->price[b_id] - b_train->price[j]);
-                    // try update ret
-                    if (comp(tmp_info, ret))
-                    {
-                        tmp_info.f_id[0] = f_id;
-                        tmp_info.f_id[1] = j;
-                        tmp_info.t_id[0] = t_id;
-                        ret = tmp_info;
-                    }
+                    b_last = j;
+                    break;
+                }
+                // check duplicate
+                if (b_train[J].train_id == a_train[I].train_id) continue;
+                tmp_info.date = std::max(require_d, b_info[J].start);
+                tmp_info.time = time_between(d, a_index[I].t1, tmp_info.date + b_info[J].offset, b_index[J].t2);
+                tmp_info.cost = a_index[I].cost + b_index[J].cost;
+                if (transfer_comp_time(tmp_info, res))
+                {
+                    tmp_info.f_id[1] = b_index[J].f_id;
+                    tmp_info.t_id[1] = b_index[J].t_id;
+                    tmp_info.train_id[1] = b_train[J].train_id;
+                    res = tmp_info;
                 }
             }
         }
-        return flag; 
+        delete []a_final;
+        delete []b_ptr;
     }
 
+    void check_transfer_station_cost(const vector<Index_Info>& a_train, const vector<Index_Info>& b_train, const vector<char>& a_to_num,
+        const vector<char>& b_to_num, Date d, Transfer_Info& res)
+    {
+        vector<Transfer_Index> a_index, b_index;
+        vector<B_Tansfer_Index> b_info;
+        int a_size = a_train.size(), b_size = b_train.size();
+        a_index.reserve(a_size+1);
+        b_index.reserve(b_size+1);
+        b_info.reserve(b_size+1);
+        int* a_ptr = new int[a_size];
+        int* b_ptr = new int[b_size];
+        // fill in index_info
+        for (int i = 0; i < a_size; i++)
+        {
+            auto train = train_db.readonly(a_train[i].train_id);
+            a_ptr[i] = i;
+            a_index[i].f_id = a_train[i].num;
+            a_index[i].t_id = a_to_num[i];
+            a_index[i].t1 = train->leave_time[a_index[i].f_id];
+            a_index[i].t2 = train->arrive_time[a_index[i].t_id-1];
+            char a_offset = a_index[i].t1.h / 24;
+            a_index[i].t1.h -= a_offset * 24;
+            a_index[i].t2.h -= a_offset * 24;
+            a_index[i].cost = train->price[a_index[i].t_id] - train->price[a_index[i].f_id];
+        }
+        for (int i = 0; i < b_size; i++)
+        {
+            auto train = train_db.readonly(b_train[i].train_id);
+            b_ptr[i] = i;
+            b_index[i].f_id = b_train[i].num;
+            b_index[i].t_id = b_to_num[i];
+            b_index[i].t1 = train->leave_time[b_index[i].f_id];
+            b_index[i].t2 = train->arrive_time[b_index[i].t_id-1];
+            b_index[i].cost = train->price[b_index[i].t_id] - train->price[b_index[i].f_id];
+            b_info[i].start = train->start_date;
+            b_info[i].end = train->end_date;
+            b_info[i].offset = b_index[i].t1.h / 24;
+            b_index[i].t1.h -= b_info[i].offset * 24;
+            b_index[i].t2.h -= b_info[i].offset * 24;
+        }
+        sort(a_ptr, a_ptr+a_size, [&a_index](int x, int y){ return a_index[x].t2 < a_index[y].t2;});
+        int* a_final = new int[a_size];
+        a_final[0] = a_ptr[0];
+        int a_cnt = 1;
+        for (int i = 1; i < a_size; ++i)
+        {
+            if (a_index[a_ptr[i]].cost > a_index[a_final[a_cnt-1]].cost) continue;
+            a_final[a_cnt] = a_ptr[i];
+            ++a_cnt;
+        }
+        delete []a_ptr;
+        sort(b_ptr, b_ptr+b_size, [&b_info](int x, int y){ return b_info[y].end + b_info[y].offset < b_info[x].end + b_info[x].offset;});
+        int b_last = b_size;
+        Transfer_Info tmp_info;
+        for (int i = 0; i < a_cnt; i++)
+        {
+            int I = a_final[i];
+            char a_offset = a_index[I].t2.h / 24;
+            a_index[I].t2.h -= a_offset * 24;
+            tmp_info.train_id[0] = a_train[I].train_id;
+            tmp_info.f_id[0] = a_train[I].num;
+            tmp_info.t_id[0] = a_to_num[I];
+            for (int j = 0; j < b_last; j++)
+            {
+                int J = b_ptr[j];
+                Date require_d = d + a_offset - b_info[J].offset + (int)(b_index[J].t1 < a_index[I].t2);
+                if (b_info[J].end < require_d)
+                {
+                    b_last = j;
+                    break;
+                }
+                // check duplicate
+                if (b_train[J].train_id == a_train[I].train_id) continue;
+                tmp_info.date = std::max(require_d, b_info[J].start);
+                tmp_info.time = time_between(d, a_index[I].t1, tmp_info.date + b_info[J].offset, b_index[J].t2);
+                tmp_info.cost = a_index[I].cost + b_index[J].cost;
+                if (transfer_comp_cost(tmp_info, res))
+                {
+                    tmp_info.f_id[1] = b_index[J].f_id;
+                    tmp_info.t_id[1] = b_index[J].t_id;
+                    tmp_info.train_id[1] = b_train[J].train_id;
+                    res = tmp_info;
+                }
+            }
+        }
+        delete []a_final;
+        delete []b_ptr;
+    }
+
+    void find_transfer(const Mystring<31>& a, const Mystring<31>& b, Date d, bool p, Transfer_Info& ret)
+    {
+        vector<Index_Info> tmpa_index, tmpb_index, b_index, a_index;
+        train_index.find(a, tmpa_index);
+        if (tmpa_index.empty()) return;
+        train_index.find(b, tmpb_index);
+        if (tmpb_index.empty()) return;
+        map<Mystring<31>, bool> common_station;
+        find_common_station(tmpa_index, tmpb_index, d, common_station);
+        if (common_station.empty()) return;
+        a_index.reserve(tmpa_index.size());
+        for (auto i = tmpa_index.begin(); i != tmpa_index.end(); ++i)
+            if ((*i).num != MAXSTA)
+                a_index.push_back(*i);
+        b_index.reserve(tmpb_index.size());
+        for (auto i = tmpb_index.begin(); i != tmpb_index.end(); ++i)
+            if ((*i).num != MAXSTA)
+                b_index.push_back(*i);
+        // iterate over common stations
+        if (!p)
+        {
+            for (auto c = common_station.begin(); c != common_station.end(); ++c)
+            {
+                vector<Index_Info> c_index;
+                train_index.find(c->first, c_index);
+                vector<Index_Info> train_a, train_b;
+                vector<char> a_to_num, b_to_num;
+                find_train(a_index, c_index, train_a, a_to_num);
+                find_train(c_index, b_index, train_b, b_to_num);
+                check_transfer_station_time(train_a, train_b, a_to_num, b_to_num, d, ret);
+            }
+        }
+        else
+        {
+            for (auto c = common_station.begin(); c != common_station.end(); ++c)
+            {
+                vector<Index_Info> c_index;
+                train_index.find(c->first, c_index);
+                vector<Index_Info> train_a, train_b;
+                vector<char> a_to_num, b_to_num;
+                find_train(a_index, c_index, train_a, a_to_num);
+                find_train(c_index, b_index, train_b, b_to_num);
+                check_transfer_station_cost(train_a, train_b, a_to_num, b_to_num, d, ret);
+            }
+        }
+    }
 };
 
 } // namespace sjtu

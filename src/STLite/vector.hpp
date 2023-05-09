@@ -268,8 +268,8 @@ public:
 	 */
 	vector() 
 	{
-		head = (T*)malloc(sizeof(T));
-		max = 1;
+		head = (T*)malloc(8*sizeof(T));
+		max = 8;
 		now = 0;
 	}
 	vector(const vector &other) 
@@ -325,13 +325,13 @@ public:
 	 */
 	T & operator[](const size_t &pos) 
 	{
-		if (pos < 0 || pos >= now)
+		if (pos < 0 || pos >= max)
 			throw index_out_of_bound();
 		return head[pos];
 	}
 	const T & operator[](const size_t &pos) const 
 	{
-		if (pos < 0 || pos >= now)
+		if (pos < 0 || pos >= max)
 			throw index_out_of_bound();
 		return head[pos];
 	}
@@ -396,8 +396,8 @@ public:
 	{
 		for (size_t i = 0; i < now; ++i) (head+i)->~T();
 		free(head);
-		head = (T*) malloc(sizeof(T));
-		max = 1;
+		head = (T*) malloc(8*sizeof(T));
+		max = 8;
 		now = 0;
 	}
 	/**
@@ -467,6 +467,15 @@ public:
 		if (now == 0) throw container_is_empty();
 		--now;
 		(head+now)->~T();
+	}
+	// reserve x*sizeof(T) space for UNUSED vector
+	void reserve(size_t x)
+	{
+		if (x <= 8) return;
+		free(head);
+		head = (T*) malloc(x*sizeof(T));
+		max = x;
+		now = 0;
 	}
 };
 
