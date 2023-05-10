@@ -11,10 +11,10 @@ namespace sjtu
 
 struct User_Data
 {
+    char priv;
     char password[31];
     char name[16];
     char mail[31];
-    char priv;
 };
 
 class User_System

@@ -19,14 +19,14 @@ namespace sjtu
 
 struct Train_Data
 {
-    bool released;
-    char station_num;
-    char type;
     Date start_date;
     Date end_date;
     Time leave_time[MAXSTA-1]; // no leave_time for last station
     Time arrive_time[MAXSTA-1]; // no arrive_time for first station
     char stations[MAXSTA][31];
+    bool released;
+    char station_num;
+    char type;
     int seat; // no seat for last station
     int price[MAXSTA]; // the price from first station
 };
@@ -412,27 +412,27 @@ private:
     struct Order_Data
     {
         signed char state;// -1 for refunded, 0 for pending, 1 for success
-        char train_id[21];
         char f_id;
         char t_id;
         Date d; // departure date of the train, not the order
+        char train_id[21];
         int num;
     };
     struct Journey_Data
     {
+        int time;
+        int price;
+        int seat;
         char train_id[21];
         Date leave_date;
         Time leave_time;
         Date arrive_date;
         Time arrive_time;
-        int price;
-        int seat;
-        int time;
     };
     struct Index_Info
     {
-        Mystring<21> train_id;
         char num;
+        Mystring<21> train_id;
         friend bool operator<(const Index_Info& a, const Index_Info& b)
         {
             return a.train_id < b.train_id;
@@ -444,8 +444,8 @@ private:
     };
     struct Seat_Index
     {
-        Mystring<21> id;
         Date date;
+        Mystring<21> id;
         friend bool operator<(const Seat_Index& a, const Seat_Index& b)
         {
             if (!(a.id == b.id)) return a.id < b.id;
@@ -569,9 +569,7 @@ private:
                     from_a.insert(pair<Mystring<31>, vector<pair<int, char>>>(train->stations[j], tmp_v));
                 }
                 else
-                {
                     found->second.push_back(toinsert);
-                }
             }
         }
         if (from_a.empty()) return flag;
@@ -583,7 +581,7 @@ private:
             // check date (roughly)
             char b_id = b_index[i].num;
             auto b_train = train_db.readonly(b_index[i].train_id);
-            int offset = b_train->arrive_time[b_id-1].h / 24;
+            char offset = b_train->arrive_time[b_id-1].h / 24;
             Time b_arrive_t = b_train->arrive_time[b_id];
             b_arrive_t.h -= 24 * offset;
             Date require_d = d - offset;
