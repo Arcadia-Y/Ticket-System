@@ -448,7 +448,8 @@ private:
         Mystring<21> id;
         friend bool operator<(const Seat_Index& a, const Seat_Index& b)
         {
-            if (!(a.id == b.id)) return a.id < b.id;
+            int res = strcmp(a.id.string, b.id.string);
+            if (res) return res < 0;
             return a.date < b.date;
         }
         friend bool operator==(const Seat_Index& a, const Seat_Index& b)
@@ -485,10 +486,14 @@ private:
     {
         vector<Index_Info> av, bv;
         train_index.find(a, av);
+        if (av.empty()) return;
         train_index.find(b, bv);
-        if (av.empty() || bv.empty()) return;
+        if (bv.empty()) return;
         auto aptr = av.begin();
         auto bptr = bv.begin();
+        int toreserve = std::min(av.size(), bv.size());
+        res.reserve(toreserve);
+        to_num.reserve(toreserve);
         while (true)
         {
             while (aptr != av.end() && (*aptr).train_id < (*bptr).train_id) ++aptr;
@@ -524,7 +529,8 @@ private:
     {
         if (a.time != b.time) return a.time < b.time;
         if (a.cost != b.cost) return a.cost < b.cost;
-        if (!(a.train_id[0] == b.train_id[0])) return a.train_id[0] < b.train_id[0];
+        int res = strcmp(a.train_id[0].string, b.train_id[0].string);
+        if (res) return res < 0;
         return a.train_id[1] < b.train_id[1];
     }
 
@@ -532,7 +538,8 @@ private:
     {
         if (a.cost != b.cost) return a.cost < b.cost;
         if (a.time != b.time) return a.time < b.time;
-        if (!(a.train_id[0] == b.train_id[0])) return a.train_id[0] < b.train_id[0];
+        int res = strcmp(a.train_id[0].string, b.train_id[0].string);
+        if (res) return res < 0;
         return a.train_id[1] < b.train_id[1];
     }
 
