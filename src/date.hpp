@@ -3,7 +3,6 @@
 #define DATE_HPP
 
 #include <iostream>
-#include <ostream>
 #include <string>
 
 namespace sjtu

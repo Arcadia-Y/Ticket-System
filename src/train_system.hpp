@@ -261,7 +261,7 @@ public:
         b_arrive_date << ' ' << b_arrive_time << ' ' << b_train->price[info.t_id[1]] - b_train->price[info.f_id[1]] << ' ' << left << '\n';
     }
 
-    void buy_ticket(int timestamp, const Mystring<21>& u, const Mystring<21>& id, Date d,
+    void buy_ticket(const Mystring<21>& u, const Mystring<21>& id, Date d,
                     const Mystring<31>& from, const Mystring<31>& to, int n, bool q)
     {
         auto train = train_db.readonly(id);
@@ -313,8 +313,9 @@ public:
         if (left >= n)
         {
             order.state = 1;
-            order_index.insert(u, -timestamp);
-            order_db.insert(timestamp, order);
+            long address = order_db.new_space();
+            order_index.insert(u, -address);
+            order_db.write(address, order);
             auto seat2 = seat_db.readwrite(index);
             for (int i = f_id; i < t_id; i++)
                 seat2->s[i] -= n;
@@ -322,15 +323,16 @@ public:
             return;
         }
         order.state = 0;
-        order_index.insert(u, -timestamp);
-        order_db.insert(timestamp, order);
-        order_queue.insert(index, timestamp);
+        long address = order_db.new_space();
+        order_index.insert(u, -address);
+        order_db.write(address, order);
+        order_queue.insert(index, address);
         std::cout << "queue\n";
     }
 
     void query_order(const Mystring<21>& u)
     {
-        vector<int> res;
+        vector<long> res;
         order_index.find(u, res);
         std::cout << res.size() << '\n';
         for (auto i = res.begin(); i != res.end(); i++)
@@ -361,7 +363,7 @@ public:
 
     int refund_ticket(const Mystring<21>& u, int n)
     {
-        vector<int> order_v;
+        vector<long> order_v;
         order_index.find(u, order_v);
         if (n >= order_v.size()) return -1;
         auto order = order_db.readwrite(-order_v[n]);
@@ -379,7 +381,7 @@ public:
         auto seat = seat_db.readwrite(index);
         for (int i = order->f_id; i < order->t_id; i++)
             seat->s[i] += order->num;
-        vector<int> queue;
+        vector<long> queue;
         order_queue.find(index, queue);
         for (auto it = queue.begin(); it != queue.end(); it++)
         {
@@ -470,14 +472,13 @@ private:
         Date date; // departure date of train[1]
         char f_id[2];
         char t_id[2];
-        
     };
     BPT<Mystring<21>, Train_Data> train_db;
     Multi_BPT<Mystring<31>, Index_Info> train_index; // station name as index
     BPT<Seat_Index, Seats> seat_db;
-    BPT<int, Order_Data> order_db; // int is timestamp
-    Multi_BPT<Mystring<21>, int> order_index; // int is -timestamp, username as index
-    Multi_BPT<Seat_Index, int> order_queue; // int is timestamp
+    Datafile<Order_Data> order_db;
+    Multi_BPT<Mystring<21>, long> order_index; // long is -address in order_db, username as index
+    Multi_BPT<Seat_Index, long> order_queue; // long is address in order_db
 
     // find all trains that go from a to b
     void find_train(const Mystring<31>& a, const Mystring<31>& b, vector<Index_Info>& res, vector<char>& to_num)

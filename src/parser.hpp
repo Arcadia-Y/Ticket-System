@@ -103,7 +103,7 @@ public:
                 std::cout << "-1\n";
                 return;
             }
-            train_system.buy_ticket(std::stoi(tokens[0].substr(1, tokens.size() - 2)), u, id, d, f, t, n, q);
+            train_system.buy_ticket(u, id, d, f, t, n, q);
         }
         else if (tokens[1] == "login")
         {
