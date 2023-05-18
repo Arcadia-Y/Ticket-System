@@ -135,7 +135,7 @@ struct Time
         m = 10 * (s[3] - '0') + s[4] - '0';
     }
 
-    Time operator+(int x)
+    inline Time operator+(int x)
     {
         Time res;
         res.h = h;
@@ -145,14 +145,14 @@ struct Time
         return res;
     }
 
-    void operator+=(int x)
+    inline void operator+=(int x)
     {
         x += m;
         h += x / 60;
         m = x % 60;
     }
 
-    int operator-(Time other) const
+    inline int operator-(Time other) const
     {
         return (h - other.h) * 60 + m - other.m;
     }

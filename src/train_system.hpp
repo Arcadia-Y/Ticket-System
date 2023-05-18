@@ -553,7 +553,7 @@ private:
         vector<Index_Info> a_index, b_index;
         train_index.find(a, a_index);
         // from_a: station as index, pair<id in a_index, t_id> as value
-        map<Mystring<31>, vector<pair<int, char>>> from_a;
+        map<std::string, vector<pair<int, char>>> from_a;
         // insert reachable city into from_a
         for (int i = 0; i < a_index.size(); i++)
         {
@@ -573,7 +573,7 @@ private:
                 {
                     vector<pair<int, char>> tmp_v;
                     tmp_v.push_back(toinsert);
-                    from_a.insert(pair<Mystring<31>, vector<pair<int, char>>>(train->stations[j], tmp_v));
+                    from_a.insert(pair<std::string, vector<pair<int, char>>>(train->stations[j], tmp_v));
                 }
                 else
                     found->second.push_back(toinsert);

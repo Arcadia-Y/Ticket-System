@@ -239,12 +239,11 @@ public:
     void insert(long key, long data)
     {
         Node* pre = &array[key % HASH_SIZE];
-        while (pre->next != nullptr)
-            pre = pre->next;
+        Node* next = pre->next;
         pre->next = memory.new_space();
         pre->next->key = key;
         pre->next->data = data;
-        pre->next->next = nullptr;
+        pre->next->next = next;
     }
 
     void erase(long key)
