@@ -307,8 +307,13 @@ public:
         Order_Data order;
         strcpy(order.train_id, id.string);
         order.d = index.date;
+        strcpy(order.from, from.string);
+        strcpy(order.to, to.string);
         order.f_id = f_id;
         order.t_id = t_id;
+        order.from_t = train->leave_time[f_id];
+        order.to_t = train->arrive_time[t_id-1];
+        order.price = train->price[t_id] - train->price[f_id];
         order.num = n;
         if (left >= n)
         {
@@ -338,7 +343,6 @@ public:
         for (auto i = res.begin(); i != res.end(); i++)
         {
             auto order = order_db.readonly(-*i);
-            auto train = train_db.readonly(order->train_id);
             if (order->state == 1)
                 std::cout << "[success] ";
             else if (!order->state)
@@ -346,17 +350,17 @@ public:
             else
                 std::cout << "[refunded] ";
             std::cout << order->train_id << ' ';
-            std::cout << train->stations[order->f_id] << ' ';
+            std::cout << order->from << ' ';
             Date d = order->d;
-            Time t = train->leave_time[order->f_id];
+            Time t = order->from_t;
             adjust_date(d, t);
             std::cout << d << ' ' << t << " -> ";
-            std::cout << train->stations[order->t_id] << ' ';
+            std::cout << order->to << ' ';
             d = order->d;
-            t = train->arrive_time[order->t_id-1];
+            t = order->to_t;
             adjust_date(d, t);
             std::cout << d << ' ' << t << ' ';
-            std::cout << train->price[order->t_id] - train->price[order->f_id] << ' ';
+            std::cout << order->price << ' ';
             std::cout << order->num << '\n';
         }
     }
@@ -414,8 +418,13 @@ private:
         signed char state;// -1 for refunded, 0 for pending, 1 for success
         char f_id;
         char t_id;
-        Date d; // departure date of the train, not the order
         char train_id[21];
+        char from[31];
+        char to[31];
+        Time from_t;
+        Time to_t;
+        Date d; // departure date of the train, not the order
+        int price;
         int num;
     };
     struct Journey_Data
