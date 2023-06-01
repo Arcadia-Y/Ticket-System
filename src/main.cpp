@@ -1,4 +1,4 @@
-#include "parser.hpp"
+#include "system/parser.hpp"
 #include <iostream>
 
 sjtu::Parser parser;

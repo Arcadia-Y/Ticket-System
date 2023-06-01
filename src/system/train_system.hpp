@@ -3,13 +3,13 @@
 #define TRAIN_SYSTEM_HPP
 
 #include <iostream>
-#include "B_plus_tree/BPT.hpp"
-#include "STLite/algorithm.hpp"
-#include "STLite/utility.hpp"
-#include "STLite/vector.hpp"
-#include "STLite/map.hpp"
-#include "file/Mystring.hpp"
-#include "B_plus_tree/Multi_BPT.hpp"
+#include "../B_plus_tree/BPT.hpp"
+#include "../STLite/algorithm.hpp"
+#include "../STLite/utility.hpp"
+#include "../STLite/vector.hpp"
+#include "../STLite/map.hpp"
+#include "../file/Mystring.hpp"
+#include "../B_plus_tree/Multi_BPT.hpp"
 #include "date.hpp"
 
 #define MAXSTA 100
