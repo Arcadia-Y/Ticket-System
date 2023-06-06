@@ -50,8 +50,8 @@ struct Date
             }
             return;
         }
+        d -= m == 6 ? 30 : 31;
         ++m;
-        d -= 31;
     }
 
     inline Date operator+(int x) const
@@ -81,8 +81,7 @@ struct Date
             return;
         }
         --m;
-        d += 31;
-        if (m == 6)  --d;
+        d += m == 6 ? 30 : 31;
         d -= x;
     }
 
@@ -171,17 +170,14 @@ struct Time
 
 };
 
-void adjust_date(Date& d, Time& t)
+inline void adjust_date(Date& d, Time& t)
 {
-    while (t.h >= 24)
-    {
-        ++d;
-        t.h -= 24;
-    }
+    d += t.h / 24;
+    t.h %= 24;
 }
 
 // (d1, t1) should be earlier than (d2, t2)
-int time_between(Date d1, Time t1, Date d2, Time t2)
+inline int time_between(Date d1, Time t1, Date d2, Time t2)
 {
     if (t2 < t1)
     {
