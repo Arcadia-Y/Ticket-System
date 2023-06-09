@@ -192,7 +192,7 @@ public:
             res.push_back(journey);
         }
         size = res.size();
-        int* array = new int[size];
+        int array[size];
         for (int i = 0; i < size; i++)
             array[i] = i;
         if (!p) // -p time
