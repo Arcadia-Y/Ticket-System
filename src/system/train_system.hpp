@@ -192,7 +192,7 @@ public:
             res.push_back(journey);
         }
         size = res.size();
-        int array[size];
+        int* array = new int[size];
         for (int i = 0; i < size; i++)
             array[i] = i;
         if (!p) // -p time
@@ -218,6 +218,7 @@ public:
             std::cout << res[j].train_id << ' ' << a << ' ' << res[j].leave_date << ' ' << res[j].leave_time << " -> " <<
             b << ' ' << res[j].arrive_date << ' ' << res[j].arrive_time << ' ' << res[j].price << ' ' << res[j].seat << '\n';
         }
+        delete []array;
     }
 
     void query_transfer(const Mystring<31>& a, const Mystring<31>& b, Date d, bool p)
