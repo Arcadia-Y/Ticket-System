@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <form action="/query_train" method="post">
+        <div>
+            <input required="required" autocomplete="off" autofocus id="i" name="i" placeholder="Train ID" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="d" name="d" placeholder="Departure Date" type="text">
+        </div>
+        <button type="submit">Query</button>
+    </form>
+{% endblock %}

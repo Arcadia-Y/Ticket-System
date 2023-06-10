@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <link rel="icon" href="{{ url_for('static', filename='12306.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" type="text/css">  
+    <title>Ticket System</title>
+  </head>
+  
+  <body>
+    <h2>
+      <a href="/"><img alt="Avatar" class="avatar" src="{{ url_for('static', filename='12306.png') }}"></a>
+       Ticket System 
+    </h2>
+
+    <script>
+      function clean()
+      {
+        if (confirm("Are you sure to clean the data?"))
+        {
+          window.location.href = "/clean";
+        }
+      }
+    </script>
+
+    <nav>
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li>
+          <a href="/">User</a>
+          <ul> 
+            <li> <a href="/add_user"> Add </a> </li>
+            <li> <a href="/login"> Login </a> </li>
+            <li> <a href="/logout"> Logout </a> </li>
+          </ul>
+        </li>
+        <li>
+            <a href="/"> Profile </a>
+            <ul> 
+              <li> <a href="/query_profile"> Query </a> </li>
+              <li> <a href="/modify_profile"> Modify </a> </li>
+            </ul>
+        </li>
+        <li>
+          <a href="/">Train</a>
+          <ul> 
+            <li> <a href="/query_train"> Query </a> </li>
+            <li> <a href="/add_train"> Add </a> </li>
+            <li> <a href="/release_train"> Release </a> </li>
+            <li> <a href="/delete_train"> Delete </a> </li>
+          </ul>
+        </li>
+        <li>
+          <a href="/">Ticket</a>
+          <ul> 
+            <li> <a href="/query_ticket"> Query </a> </li>
+            <li> <a href="/query_transfer"> Transfer </a> </li>
+            <li> <a href="/buy_ticket"> Buy </a> </li>
+          </ul>
+        </li>
+        <li>
+          <a href="/">Order</a>
+          <ul> 
+            <li> <a href="/query_order"> Query </a> </li>
+            <li> <a href="/refund_ticket"> Refund </a> </li>
+          </ul>
+        </li>
+        <li><a onclick="clean()"> Clean </a> </li>
+      </ul>
+    </nav>
+
+    <main>
+      {% block main %}{% endblock %}
+    </main>
+    
+    <footer>
+      <small>&copy; 2023 <a href="https://github.com/Arcadia-Y">Arcadia-Y</a></small>
+    </footer>
+  </body>
+
+</html>

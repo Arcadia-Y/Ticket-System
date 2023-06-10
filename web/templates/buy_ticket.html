@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <form action="/buy_ticket" method="post">
+        <div>
+            <input required="required" autocomplete="off" autofocus id="u" name="u" placeholder="Username" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="i" name="i" placeholder="TrainID" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="d" name="d" placeholder="Date" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="f" name="f" placeholder="From" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="t" name="t" placeholder="To" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="n" name="n" placeholder="Shares" type="number">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="q" name="q" placeholder="Accept queue? 0:N 1:Y"  type="number">
+        </div>
+        <button type="submit">Buy</button>
+    </form>
+{% endblock %}

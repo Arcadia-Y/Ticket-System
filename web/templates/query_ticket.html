@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <form action="/query_ticket" method="post">
+        <div>
+            <input required="required" autocomplete="off" autofocus id="s" name="s" placeholder="Departure Station" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="t" name="t" placeholder="Destination" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="d" name="d" placeholder="Departure Date" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="p" name="p" placeholder="Sorted by: 0-time 1-cost" type="number">
+        </div>
+        <button type="submit">Query</button>
+    </form>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <form action="/refund_ticket" method="post">
+        <div>
+            <input required="required" autocomplete="off" autofocus id="u" name="u" placeholder="Username" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="n" name="n" placeholder="Index of the Order" type="number">
+        </div>
+        <button type="submit">Refund</button>
+    </form>
+{% endblock %}

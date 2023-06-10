@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <form action="/add_train" method="post">
+        <div>
+            <input required="required" autocomplete="off" autofocus id="i" name="i" placeholder="Train ID" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="n" name="n" placeholder="Stations Number" type="number">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="m" name="m" placeholder="Steats Number" type="number">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="s" name="s" placeholder="Stations" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="p" name="p" placeholder="Prices" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="x" name="x" placeholder="Start Time" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="t" name="t" placeholder="Travel Times" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="o" name="o" placeholder="Stopover Times" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="d" name="d" placeholder="Sale Date" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="y" name="y" placeholder="Type" type="text">
+        </div>
+        <button type="submit">Add</button>
+    </form>
+{% endblock %}

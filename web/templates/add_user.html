@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <form action="/add_user" method="post">
+        <div>
+            <input autocomplete="off" autofocus id="c" name="c" placeholder="Current User" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="u" name="u" placeholder="Username" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="p" name="p" placeholder="Password" type="password">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="n" name="n" placeholder="Name" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="m" name="m" placeholder="Mail Address" type="text">
+        </div>
+        <div>
+            <input autocomplete="off" autofocus id="g" name="g" placeholder="Privilege" type="number">
+        </div>
+        <button type="submit">Add</button>
+    </form>
+{% endblock %}

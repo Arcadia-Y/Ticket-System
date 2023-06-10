@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <form action="/logout" method="post">
+        <div>
+            <input required="required" autocomplete="off" autofocus id="username" name="username" placeholder="Username" type="text">
+        </div>
+        <button type="submit">Logout</button>
+    </form>
+{% endblock %}

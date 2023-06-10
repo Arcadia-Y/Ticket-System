@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Name</th>
+                <th>Mail Address</th>
+                <th>Privilege</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+            {% for record in records %}  
+                    <td>{{record}}</td>
+            {% endfor %}
+        </tr>
+        </tbody>
+    </table>
+{% endblock %}

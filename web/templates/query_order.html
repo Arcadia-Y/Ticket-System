@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <form action="/query_order" method="post">
+        <div>
+            <input required="required" autocomplete="off" autofocus id="u" name="u" placeholder="Username" type="text">
+        </div>
+        <button type="submit">Query</button>
+    </form>
+{% endblock %}

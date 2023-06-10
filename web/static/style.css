@@ -1,0 +1,88 @@
+body {
+    margin: auto;
+    font-size: 16px;
+    text-align: center;
+    font-family: Helvetica, Arial, sans-serif;
+    max-width: 880px;
+}
+
+footer {
+    color: #888;
+    margin-top: 15px;
+    text-align: center;
+    padding: 10px;
+}
+
+.avatar {
+    width: 25px;
+    margin: auto;
+}
+
+nav {
+    position: relative;
+}
+
+nav ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    color: white;
+    background-color: rgb(209, 33, 33);
+}
+
+nav li {
+    display: inline-block;
+}
+
+nav li a {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 8px 12px;
+    text-decoration: none;
+}
+
+nav li a:hover {
+    background-color: rgb(255, 0, 0);
+}
+
+nav ul ul {
+    position: absolute;
+    top: 100%;
+    display: none;
+}
+
+nav ul ul li {
+    display: block;
+}
+
+nav li:hover ul {
+    display: block;
+}
+
+nav ul ul li a:hover {
+    background-color:rgb(255, 0, 0);
+}
+
+form {
+    font-size: 30px;
+}
+
+.checkbox label {
+    font-size: 16px;
+}
+
+table {
+    text-align: center;
+    width: 100%;
+}
+
+table th {
+    background-color: rgb(209, 33, 33);
+    color: white;
+}
+
+table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}

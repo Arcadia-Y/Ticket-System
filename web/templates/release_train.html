@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <form action="/release_train" method="post">
+        <div>
+            <input required="required" autocomplete="off" autofocus id="i" name="i" placeholder="Train ID" type="text">
+        </div>
+        <button type="submit">Release</button>
+    </form>
+{% endblock %}

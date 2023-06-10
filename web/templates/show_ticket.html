@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <h3> Train count: {{cnt}}</h3>
+    {% if cnt > 0 %}
+    <table>
+        <thead>
+            <tr>
+                <th>TrainID</th>
+                <th>From</th>
+                <th>Leaving Time</th>
+                <th>To</th>
+                <th>Arriving Time</th>
+                <th>Price</th>
+                <th>Seats</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for record in records %}  
+            <tr>
+            {% for item in record %}
+                <td>{{item}}</td>
+            {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+{% endblock %}

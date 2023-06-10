@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <form action="/query_profile" method="post">
+        <div>
+            <input required="required" autocomplete="off" autofocus id="c" name="c" placeholder="Current User" type="text">
+        </div>
+        <div>
+            <input required="required" autocomplete="off" autofocus id="u" name="u" placeholder="User to Query" type="text">
+        </div>
+        <button type="submit">Query</button>
+    </form>
+{% endblock %}
